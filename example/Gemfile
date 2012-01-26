@@ -1,0 +1,6 @@
+source :rubygems
+
+gem 'rack'
+
+gem 'sinatra'
+gem 'omniauth-shopify-oauth2', :path => '../'
