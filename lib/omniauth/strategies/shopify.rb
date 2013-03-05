@@ -13,6 +13,8 @@ module OmniAuth
       }
 
       option :callback_url
+      
+      option :provider_ignores_state, true
 
       def authorize_params
         super.tap do |params|
