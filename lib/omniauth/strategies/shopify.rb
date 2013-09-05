@@ -13,8 +13,16 @@ module OmniAuth
       }
 
       option :callback_url
-      
+
       option :provider_ignores_state, true
+
+      uid { request.env["rack.request.query_hash"]["shop"] }
+
+      info { { name: shop_name } }
+
+      def shop_name
+        request.env["rack.request.query_hash"]["shop"].sub('.myshopify.com', '')
+      end
 
       def authorize_params
         super.tap do |params|
