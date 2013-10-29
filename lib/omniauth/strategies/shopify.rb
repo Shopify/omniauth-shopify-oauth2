@@ -16,6 +16,8 @@ module OmniAuth
       
       option :provider_ignores_state, true
 
+      uid { request.params[options['shop'].to_s] }
+
       def authorize_params
         super.tap do |params|
           params[:scope] ||= DEFAULT_SCOPE
