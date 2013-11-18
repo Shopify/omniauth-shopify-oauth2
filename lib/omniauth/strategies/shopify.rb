@@ -16,6 +16,8 @@ module OmniAuth
       
       option :provider_ignores_state, true
 
+      uid { URI.parse(options[:client_options][:site]).host }
+
       def authorize_params
         super.tap do |params|
           params[:scope] ||= DEFAULT_SCOPE

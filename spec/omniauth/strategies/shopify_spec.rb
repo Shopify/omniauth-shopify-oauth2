@@ -4,7 +4,8 @@ require 'base64'
 
 describe OmniAuth::Strategies::Shopify do
   before :each do
-    @request = double('Request')
+    @request = double('Request',
+                      :env => { })
     @request.stub(:params) { {} }
     @request.stub(:cookies) { {} }
 
@@ -17,6 +18,7 @@ describe OmniAuth::Strategies::Shopify do
     args = [@client_id, @client_secret, @options].compact
     OmniAuth::Strategies::Shopify.new(nil, *args).tap do |strategy|
       strategy.stub(:request) { @request }
+      strategy.stub(:session) { {} }
     end
   end
 
@@ -62,6 +64,12 @@ describe OmniAuth::Strategies::Shopify do
     end
   end
 
+  describe '#uid' do
+    it 'returns the shop' do
+      subject.uid.should eq('example.myshopify.com')
+    end
+  end
+
   describe '#credentials' do
     before :each do
       @access_token = double('OAuth2::AccessToken')
@@ -88,5 +96,6 @@ describe OmniAuth::Strategies::Shopify do
       @access_token.stub(:expires?) { false }
       subject.credentials['expires'].should eq(false)
     end
+
   end
 end
