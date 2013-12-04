@@ -9,6 +9,7 @@ Gem::Specification.new do |s|
   s.email    = ['denis.odorcic@shopify.com']
   s.summary  = 'Shopify strategy for OmniAuth'
   s.homepage = 'https://github.com/Shopify/omniauth-shopify-oauth2'
+  s.license = 'MIT'
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
