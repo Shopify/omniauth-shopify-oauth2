@@ -19,12 +19,17 @@ module OmniAuth
       uid { URI.parse(options[:client_options][:site]).host }
 
       def valid_site?
-        return /^https\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com[\/]?$/ =~ options[:client_options][:site]
+        return /^(https|http)\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com[\/]?$/ =~ options[:client_options][:site]
+      end
+
+      def fix_https
+        options[:client_options][:site].gsub!(/^http\:/, 'https:')
       end
 
       def setup_phase
         super
         raise CallbackError.new(nil, :invalid_site) unless valid_site?
+        fix_https
       end
 
       def authorize_params
