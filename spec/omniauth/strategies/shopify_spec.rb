@@ -22,6 +22,20 @@ describe OmniAuth::Strategies::Shopify do
     end
   end
 
+  describe '#fix_https' do
+    it 'replaces http scheme by https' do
+      @options = {:client_options => {:site => 'http://foo.bar/'}}
+      subject.fix_https
+      subject.options[:client_options][:site].should eq('https://foo.bar/')
+    end
+
+    it 'does not replace https scheme' do
+      @options = {:client_options => {:site => 'https://foo.bar/'}}
+      subject.fix_https
+      subject.options[:client_options][:site].should eq('https://foo.bar/')
+    end
+  end
+
   describe '#client' do
     it 'has correct shopify site' do
       subject.client.site.should eq('https://example.myshopify.com')
