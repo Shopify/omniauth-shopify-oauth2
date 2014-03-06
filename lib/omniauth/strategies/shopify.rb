@@ -5,6 +5,7 @@ module OmniAuth
     class Shopify < OmniAuth::Strategies::OAuth2
       # Available scopes: content themes products customers orders script_tags shipping
       # read_*  or write_*
+      VALID_SITE = /^https\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com[\/]?$/
       DEFAULT_SCOPE = 'read_products'
 
       option :client_options, {
@@ -19,7 +20,7 @@ module OmniAuth
       uid { URI.parse(options[:client_options][:site]).host }
 
       def valid_site?
-        return /^https\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com[\/]?$/ =~ options[:client_options][:site]
+        return VALID_SITE =~ options[:client_options][:site]
       end
 
       def request_phase
