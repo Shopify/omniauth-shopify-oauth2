@@ -22,9 +22,12 @@ module OmniAuth
         return /^https\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com[\/]?$/ =~ options[:client_options][:site]
       end
 
-      def setup_phase
-        super
-        raise CallbackError.new(nil, :invalid_site) unless valid_site?
+      def request_phase
+        if valid_site?
+          super
+        else
+          fail!(:invalid_site)
+        end
       end
 
       def authorize_params
