@@ -14,7 +14,7 @@ Then `bundle install`.
 
 ## Usage
 
-`OmniAuth::Strategies::Shopify` is simply a Rack middleware. Read the OmniAuth 1.0 docs for detailed instructions: https://github.com/intridea/omniauth.
+`OmniAuth::Strategies::Shopify` is simply a Rack middleware. Read [the OmniAuth 1.0 docs](https://github.com/intridea/omniauth) for detailed instructions.
 
 Here's a quick example, adding the middleware to a Rails app in `config/initializers/omniauth.rb`:
 
@@ -28,9 +28,9 @@ end
 
 You can configure the scope, which you pass in to the `provider` method via a `Hash`:
 
-* `scope`: A comma-separated list of permissions you want to request from the user. See the Shopify API docs for a full list of available permissions: http://api.shopify.com.
+* `scope`: A comma-separated list of permissions you want to request from the user. See [the Shopify API docs](http://docs.shopify.com/api/tutorials/oauth) for a full list of available permissions.
 
-* `setup`: A lambda which dynamically sets the `site`. You must initiate the omniauth process by passing in a shop query parameter of the shop you're requesting permissions for. Ex. http://myapp.com/auth/shopify?shop=example.myshopify.com
+* `setup`: A lambda which dynamically sets the `site`. You must initiate the OmniAuth process by passing in a `shop` query parameter of the shop you're requesting permissions for. Ex. http://myapp.com/auth/shopify?shop=example.myshopify.com
 
 For example, to request `read_products`, `read_orders` and `write_content` permissions and display the authentication page:
 
