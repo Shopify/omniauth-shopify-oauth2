@@ -128,5 +128,10 @@ describe OmniAuth::Strategies::Shopify do
       @options = {:client_options => {:site => 'http://foo.example.com/'}, :myshopify_domain => 'example.com'}
       subject.valid_site?.should eq(true)
     end
+
+    it 'allows custom port for myshopify_domain' do
+      @options = {:client_options => {:site => 'http://foo.example.com:3456/'}, :myshopify_domain => 'example.com:3456'}
+      subject.valid_site?.should eq(true)
+    end
   end
 end
