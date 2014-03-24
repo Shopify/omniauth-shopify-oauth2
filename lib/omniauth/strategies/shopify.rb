@@ -15,11 +15,12 @@ module OmniAuth
       option :callback_url
       
       option :provider_ignores_state, true
+      option :myshopify_domain, 'myshopify.com'
 
       uid { URI.parse(options[:client_options][:site]).host }
 
       def valid_site?
-        return /\A(https|http)\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com[\/]?\z/ =~ options[:client_options][:site]
+        !!(/\A(https|http)\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.#{Regexp.quote(options[:myshopify_domain])}[\/]?\z/ =~ options[:client_options][:site])
       end
 
       def fix_https

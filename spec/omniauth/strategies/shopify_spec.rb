@@ -112,4 +112,21 @@ describe OmniAuth::Strategies::Shopify do
     end
 
   end
+
+  describe '#valid_site?' do
+    it 'returns true if the site contains .myshopify.com' do
+      @options = {:client_options => {:site => 'http://foo.myshopify.com/'}}
+      subject.valid_site?.should eq(true)
+    end
+
+    it 'returns false if the site does not contain .myshopify.com' do
+      @options = {:client_options => {:site => 'http://foo.example.com/'}}
+      subject.valid_site?.should eq(false)
+    end
+
+    it 'uses configurable option for myshopify_domain' do
+      @options = {:client_options => {:site => 'http://foo.example.com/'}, :myshopify_domain => 'example.com'}
+      subject.valid_site?.should eq(true)
+    end
+  end
 end
