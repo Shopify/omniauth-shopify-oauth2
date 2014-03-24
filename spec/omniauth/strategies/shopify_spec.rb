@@ -60,6 +60,7 @@ describe OmniAuth::Strategies::Shopify do
     it "defaults to callback" do
       url_base = 'http://auth.request.com'
       @request.stub(:url) { "#{url_base}/page/path" }
+      @request.stub(:scheme) { 'http' }
       subject.stub(:script_name) { "" } # to not depend from Rack env
       subject.callback_url.should eq("#{url_base}/auth/shopify/callback")
     end
