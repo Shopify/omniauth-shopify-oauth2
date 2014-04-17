@@ -1,3 +1,5 @@
+[![Build Status](https://api.travis-ci.org/Shopify/omniauth-shopify-oauth2.png?branch=master)](http://travis-ci.org/Shopify/omniauth-shopify-oauth2)
+
 # OmniAuth Shopify
 
 Shopify OAuth2 Strategy for OmniAuth 1.0.
