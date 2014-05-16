@@ -1,11 +1,15 @@
+dependencies:
+  override:
+    - bundle install --path=./data/bundler
+
 deploy:
   override:
-    - VERSION=`bundle exec rake build | cut -d" " -f2`
-    - >
-      if [ "`git tag | grep v$VERSION`" = "" ]; then
-        echo "No tag exist on github for v$VERSION.";
-        echo "Add one with:";
-        echo "  git tag -a -m \"Version $VERSION\" v$VERSION";
+    - |
+      BUILD=`bundle exec rake build`
+      if [ $? != 0 ]; then
+        echo $BUILD;
         exit 1;
       fi
-    - bundle exec rake release
+      PKG=`echo $BUILD | cut -d" " -f5 | sed -e s/\.$//`;
+      VERSION=`bundle exec rake build | cut -d" " -f2`;
+      gem push $PKG
