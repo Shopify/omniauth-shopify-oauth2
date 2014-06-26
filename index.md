@@ -46,15 +46,14 @@ For example, to request `read_products`, `read_orders` and `write_content` permi
 
 Here's an example *Authentication Hash* available in `request.env['omniauth.auth']`:
 
-```ruby
-{
-  :provider => 'shopify',
-  :credentials => {
-    :token => 'afasd923kjh0934kf', # OAuth 2.0 access_token, which you store and use to authenticate API requests
-  }
-}
-```
+	ruby
+	{
+	  :provider => 'shopify',
+	  :credentials => {
+	    :token => 'afasd923kjh0934kf', # OAuth 2.0 access_token, which you store and use to authenticate API requests
+	  }
+	}
 
 ## License
 
-Copyright (c) 2012 Shopify | Released under the [MIT-LICENSE](http://opensource.org/licenses/MIT)
+Copyright (c) 2012 Shopify. Released under the [MIT-LICENSE](http://opensource.org/licenses/MIT).
