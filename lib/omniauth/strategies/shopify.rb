@@ -40,6 +40,14 @@ module OmniAuth
         end
       end
 
+      def callback_phase
+        if valid_site?
+          super
+        else
+          fail!(:invalid_site)
+        end
+      end
+
       def authorize_params
         super.tap do |params|
           params[:scope] ||= DEFAULT_SCOPE
