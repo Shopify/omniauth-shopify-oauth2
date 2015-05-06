@@ -13,6 +13,7 @@ class App < Sinatra::Base
     </head>
     <body>
       <h3>Authorized</h3>
+      <p>Shop: #{request.env['omniauth.auth'].uid}</p>
       <p>Token: #{request.env['omniauth.auth']['credentials']['token']}</p>
     </body>
     </html>
@@ -34,7 +35,7 @@ class App < Sinatra::Base
   end
 end
 
-use Rack::Session::Cookie
+use Rack::Session::Cookie, secret: SecureRandom.hex(64)
 
 use OmniAuth::Builder do
   provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'],
