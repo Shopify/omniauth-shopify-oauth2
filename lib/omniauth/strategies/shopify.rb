@@ -1,4 +1,5 @@
 require 'omniauth/strategies/oauth2'
+require 'openssl'
 
 module OmniAuth
   module Strategies
@@ -23,6 +24,20 @@ module OmniAuth
         !!(/\A(https|http)\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.#{Regexp.quote(options[:myshopify_domain])}[\/]?\z/ =~ options[:client_options][:site])
       end
 
+      def valid_hmac?
+        digest = OpenSSL::Digest::SHA256.new("HMAC-SHA256")
+        payload = request.params
+          .inject({}) { |memo, (k, v)| memo[k] = v unless k == 'signature' || k == 'hmac'; memo }
+          .sort_by { |(k, v)| k.to_s }
+          .map { |(k, v)| "#{k}=#{v}" }
+          .join("&")
+
+        hmac_expected = OpenSSL::HMAC.hexdigest(digest, client.secret, payload)
+        hmac_provided = request.params['hmac']
+
+        hmac_provided == hmac_expected
+      end
+
       def fix_https
         options[:client_options][:site].gsub!(/\Ahttp\:/, 'https:')
       end
@@ -37,6 +52,14 @@ module OmniAuth
           super
         else
           fail!(:invalid_site)
+        end
+      end
+
+      def callback_phase
+        if valid_hmac?
+          super
+        else
+          fail!(:invalid_hmac)
         end
       end
 

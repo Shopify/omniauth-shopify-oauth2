@@ -135,4 +135,49 @@ describe OmniAuth::Strategies::Shopify do
       subject.valid_site?.should eq(true)
     end
   end
+
+  describe "#valid_hmac?" do
+    before :each do
+      # using example HMACs from http://docs.shopify.com/api/authentication/oauth#verification
+      @client_secret = "hush"
+    end
+
+    it "returns true when HMAC is valid" do
+      @request.stub(:params) {
+        {
+          "shop" => "some-shop.myshopify.com",
+          "code" => "a94a110d86d2452eb3e2af4cfb8a3828",
+          "timestamp" => "1337178173",
+          "signature" => "6e39a2ea9e497af6cb806720da1f1bf3",
+          "hmac" => "2cb1a277650a659f1b11e92a4a64275b128e037f2c3390e3c8fd2d8721dac9e2"
+        }
+      }
+      subject.valid_hmac?.should eq(true)
+    end
+
+    it "returns false when HMAC is incorrect" do
+      @request.stub(:params) {
+        {
+          "shop" => "some-shop.myshopify.com",
+          "code" => "a94a110d86d2452eb3e2af4cfb8a3828",
+          "timestamp" => "1337178173",
+          "signature" => "6e39a2ea9e497af6cb806720da1f1bf3",
+          "hmac" => "iamwrong"
+        }
+      }
+      subject.valid_hmac?.should eq(false)
+    end
+
+    it "returns false when HMAC is missing" do
+      @request.stub(:params) {
+        {
+          "shop" => "some-shop.myshopify.com",
+          "code" => "a94a110d86d2452eb3e2af4cfb8a3828",
+          "timestamp" => "1337178173",
+          "signature" => "6e39a2ea9e497af6cb806720da1f1bf3"
+        }
+      }
+      subject.valid_hmac?.should eq(false)
+    end
+  end
 end
