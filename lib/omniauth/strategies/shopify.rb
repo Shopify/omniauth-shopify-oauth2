@@ -23,6 +23,31 @@ module OmniAuth
         !!(/\A(https|http)\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.#{Regexp.quote(options[:myshopify_domain])}[\/]?\z/ =~ options[:client_options][:site])
       end
 
+      def valid_signature?
+        return false unless request.POST.empty?
+
+        params = request.GET
+        signature = params['hmac']
+        timestamp = params['timestamp']
+        return false unless signature && timestamp
+
+        return false unless timestamp.to_i > Time.now.to_i - 5 * 60
+
+        calculated_signature = self.class.hmac_sign(self.class.encoded_params_for_signature(params), options.client_secret)
+        Rack::Utils.secure_compare(calculated_signature, signature)
+      end
+
+      def self.encoded_params_for_signature(params)
+        params = params.dup
+        params.delete('hmac')
+        params.delete('signature') # deprecated signature
+        params.map{|k,v| "#{URI.escape(k.to_s, '&=%')}=#{URI.escape(v.to_s, '&%')}"}.sort.join('&')
+      end
+
+      def self.hmac_sign(encoded_params, secret)
+        OpenSSL::HMAC.hexdigest(OpenSSL::Digest::SHA256.new, secret, encoded_params)
+      end
+
       def fix_https
         options[:client_options][:site].gsub!(/\Ahttp\:/, 'https:')
       end
@@ -41,11 +66,9 @@ module OmniAuth
       end
 
       def callback_phase
-        if valid_site?
-          super
-        else
-          fail!(:invalid_site)
-        end
+        return fail!(:invalid_site) unless valid_site?
+        return fail!(:invalid_signature) unless valid_signature?
+        super
       end
 
       def authorize_params
