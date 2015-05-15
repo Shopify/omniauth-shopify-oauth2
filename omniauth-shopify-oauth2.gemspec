@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'omniauth-oauth2', '~> 1.1.1'
 
-  s.add_development_dependency 'rspec', '~> 2.7.0'
+  s.add_development_dependency 'minitest', '~> 5.6'
+  s.add_development_dependency 'fakeweb', '~> 1.3'
   s.add_development_dependency 'rake'
 end
