@@ -74,8 +74,16 @@ class IntegrationTest < Minitest::Test
   end
 
   def test_provider_options
-    build_app scope: 'read_products,read_orders,write_content', callback_path: '/admin/auth/legacy/callback', myshopify_domain: 'myshopify.dev:3000'
-    response = authorize('snowdevil.myshopify.dev:3000')
+    build_app scope: 'read_products,read_orders,write_content',
+              callback_path: '/admin/auth/legacy/callback',
+              myshopify_domain: 'myshopify.dev:3000',
+              setup: lambda { |env|
+                shop = Rack::Request.new(env).GET['shop']
+                shop += ".myshopify.dev:3000" unless shop.include?(".")
+                env['omniauth.strategy'].options[:client_options][:site] = "https://#{shop}"
+              }
+
+    response = authorize('snowdevil')
     assert_equal 302, response.status
     assert_match /\A#{Regexp.quote("https://snowdevil.myshopify.dev:3000/admin/oauth/authorize?")}/, response.location
     redirect_params = Rack::Utils.parse_query(URI(response.location).query)
@@ -92,11 +100,6 @@ class IntegrationTest < Minitest::Test
     }
 
     app = OmniAuth::Builder.new(app) do
-      options[:setup] ||= lambda { |env|
-        params = Rack::Utils.parse_query(env['QUERY_STRING'])
-        env['omniauth.strategy'].options[:client_options][:site] = "https://#{params['shop']}"
-      }
-
       provider :shopify, '123', '53cr3tz', options
     end
     @app = Rack::Session::Cookie.new(app, secret: SecureRandom.hex(64))

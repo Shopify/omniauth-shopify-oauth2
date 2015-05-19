@@ -13,9 +13,14 @@ module OmniAuth
       }
 
       option :callback_url
-      
+
       option :provider_ignores_state, true
       option :myshopify_domain, 'myshopify.com'
+
+      option :setup, proc { |env|
+        request = Rack::Request.new(env)
+        env['omniauth.strategy'].options[:client_options][:site] = "https://#{request.GET['shop']}"
+      }
 
       uid { URI.parse(options[:client_options][:site]).host }
 

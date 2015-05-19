@@ -38,10 +38,7 @@ end
 use Rack::Session::Cookie, secret: SecureRandom.hex(64)
 
 use OmniAuth::Builder do
-  provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'],
-           :scope => SCOPE,
-           :setup => lambda { |env| params = Rack::Utils.parse_query(env['QUERY_STRING'])
-                                    env['omniauth.strategy'].options[:client_options][:site] = "https://#{params['shop']}" }
+  provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'], :scope => SCOPE
 end
 
 run App.new
