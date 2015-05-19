@@ -93,7 +93,8 @@ class IntegrationTest < Minitest::Test
   end
 
   def test_callback_rejects_old_timestamps
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: SecureRandom.hex(16), timestamp: Time.now.to_i - 5 * 60 - 1))
+    expired_timestamp = Time.now.to_i - OmniAuth::Strategies::Shopify::CODE_EXPIRES_AFTER - 1
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: SecureRandom.hex(16), timestamp: expired_timestamp))
 
     assert_auth_failure(response, 'invalid_signature')
   end
@@ -101,7 +102,7 @@ class IntegrationTest < Minitest::Test
   def test_callback_rejects_missing_hmac
     code = SecureRandom.hex(16)
 
-    response = callback(shop: 'snowdevil.myshopify.com', code: code, timestamp: Time.now.to_i - 5 * 60 - 1)
+    response = callback(shop: 'snowdevil.myshopify.com', code: code, timestamp: Time.now.to_i)
 
     assert_auth_failure(response, 'invalid_signature')
   end

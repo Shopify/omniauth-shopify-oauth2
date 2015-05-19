@@ -6,6 +6,8 @@ module OmniAuth
       # Available scopes: content themes products customers orders script_tags shipping
       # read_*  or write_*
       DEFAULT_SCOPE = 'read_products'
+      MINUTE = 60
+      CODE_EXPIRES_AFTER = 10 * MINUTE
 
       option :client_options, {
         :authorize_url => '/admin/oauth/authorize',
@@ -31,7 +33,7 @@ module OmniAuth
         timestamp = params['timestamp']
         return false unless signature && timestamp
 
-        return false unless timestamp.to_i > Time.now.to_i - 5 * 60
+        return false unless timestamp.to_i > Time.now.to_i - CODE_EXPIRES_AFTER
 
         calculated_signature = self.class.hmac_sign(self.class.encoded_params_for_signature(params), options.client_secret)
         Rack::Utils.secure_compare(calculated_signature, signature)
