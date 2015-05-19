@@ -15,8 +15,6 @@ module OmniAuth
       }
 
       option :callback_url
-
-      option :provider_ignores_state, true
       option :myshopify_domain, 'myshopify.com'
 
       option :setup, proc { |env|
