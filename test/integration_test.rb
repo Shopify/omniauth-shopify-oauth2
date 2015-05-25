@@ -41,36 +41,82 @@ class IntegrationTest < Minitest::Test
       'snowdevil.myshopify.com:22',     # shop contains port
     ].each do |shop, valid|
       response = authorize(shop)
-      assert_equal 302, response.status
-      assert_match /\A#{Regexp.quote("/auth/failure?message=invalid_site")}/, response.location
+      assert_auth_failure(response, 'invalid_site')
 
-      response = callback(shop: shop, code: code)
-      assert_nil FakeWeb.last_request
-      assert_equal 302, response.status
-      assert_match /\A#{Regexp.quote("/auth/failure?message=invalid_site")}/, response.location
+      response = callback(sign_params(shop: shop, code: code))
+      assert_auth_failure(response, 'invalid_site')
     end
   end
 
   def test_callback
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
+    expect_access_token_request(access_token)
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code))
+
+    assert_callback_success(response, access_token, code)
+  end
+
+  def test_callback_with_legacy_signature
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token)
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code).merge(signature: 'ignored'))
+
+    assert_callback_success(response, access_token, code)
+  end
+
+  def test_callback_custom_params
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
     FakeWeb.register_uri(:post, "https://snowdevil.myshopify.com/admin/oauth/access_token",
                          body: JSON.dump(access_token: access_token),
                          content_type: 'application/json')
 
-    response = callback(shop: 'snowdevil.myshopify.com', code: code)
+    now = Time.now.to_i
+    params = { shop: 'snowdevil.myshopify.com', code: code, timestamp: now, next: '/products?page=2&q=red%20shirt' }
+    encoded_params = "code=#{code}&next=/products?page=2%26q=red%2520shirt&shop=snowdevil.myshopify.com&timestamp=#{now}"
+    params[:hmac] = OpenSSL::HMAC.hexdigest(OpenSSL::Digest::SHA256.new, @secret, encoded_params)
 
-    token_request_params = Rack::Utils.parse_query(FakeWeb.last_request.body)
-    assert_equal token_request_params['client_id'], '123'
-    assert_equal token_request_params['client_secret'], '53cr3tz'
-    assert_equal token_request_params['code'], code
+    response = callback(params)
 
-    assert_equal 'snowdevil.myshopify.com', @omniauth_result.uid
-    assert_equal access_token, @omniauth_result.credentials.token
-    assert_equal false, @omniauth_result.credentials.expires
+    assert_callback_success(response, access_token, code)
+  end
 
-    assert_equal 200, response.status
-    assert_equal "OK", response.body
+  def test_callback_rejects_invalid_hmac
+    @secret = 'wrong_secret'
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: SecureRandom.hex(16)))
+
+    assert_auth_failure(response, 'invalid_signature')
+  end
+
+  def test_callback_rejects_old_timestamps
+    expired_timestamp = Time.now.to_i - OmniAuth::Strategies::Shopify::CODE_EXPIRES_AFTER - 1
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: SecureRandom.hex(16), timestamp: expired_timestamp))
+
+    assert_auth_failure(response, 'invalid_signature')
+  end
+
+  def test_callback_rejects_missing_hmac
+    code = SecureRandom.hex(16)
+
+    response = callback(shop: 'snowdevil.myshopify.com', code: code, timestamp: Time.now.to_i)
+
+    assert_auth_failure(response, 'invalid_signature')
+  end
+
+  def test_callback_rejects_body_params
+    code = SecureRandom.hex(16)
+    params = sign_params(shop: 'snowdevil.myshopify.com', code: code)
+    body = Rack::Utils.build_nested_query(unsigned: 'value')
+
+    response = request.get("https://app.example.com/auth/shopify/callback?#{Rack::Utils.build_query(params)}",
+                           input: body,
+                           "CONTENT_TYPE" => 'application/x-www-form-urlencoded')
+
+    assert_auth_failure(response, 'invalid_signature')
   end
 
   def test_provider_options
@@ -93,6 +139,42 @@ class IntegrationTest < Minitest::Test
 
   private
 
+  def sign_params(params)
+    params = params.dup
+
+    params[:timestamp] ||= Time.now.to_i
+
+    encoded_params = OmniAuth::Strategies::Shopify.encoded_params_for_signature(params)
+    params['hmac'] = OmniAuth::Strategies::Shopify.hmac_sign(encoded_params, @secret)
+    params
+  end
+
+  def expect_access_token_request(access_token)
+    FakeWeb.register_uri(:post, "https://snowdevil.myshopify.com/admin/oauth/access_token",
+                         body: JSON.dump(access_token: access_token),
+                         content_type: 'application/json')
+  end
+
+  def assert_callback_success(response, access_token, code)
+    token_request_params = Rack::Utils.parse_query(FakeWeb.last_request.body)
+    assert_equal token_request_params['client_id'], '123'
+    assert_equal token_request_params['client_secret'], @secret
+    assert_equal token_request_params['code'], code
+
+    assert_equal 'snowdevil.myshopify.com', @omniauth_result.uid
+    assert_equal access_token, @omniauth_result.credentials.token
+    assert_equal false, @omniauth_result.credentials.expires
+
+    assert_equal 200, response.status
+    assert_equal "OK", response.body
+  end
+
+  def assert_auth_failure(response, reason)
+    assert_nil FakeWeb.last_request
+    assert_equal 302, response.status
+    assert_match /\A#{Regexp.quote("/auth/failure?message=#{reason}")}/, response.location
+  end
+
   def build_app(options={})
     app = proc { |env|
       @omniauth_result = env['omniauth.auth']
@@ -102,6 +184,7 @@ class IntegrationTest < Minitest::Test
     app = OmniAuth::Builder.new(app) do
       provider :shopify, '123', '53cr3tz', options
     end
+    @secret = '53cr3tz'
     @app = Rack::Session::Cookie.new(app, secret: SecureRandom.hex(64))
   end
 
