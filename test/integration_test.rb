@@ -53,7 +53,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token)
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code))
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_callback_success(response, access_token, code)
   end
@@ -63,7 +63,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token)
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code).merge(signature: 'ignored'))
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]).merge(signature: 'ignored'))
 
     assert_callback_success(response, access_token, code)
   end
@@ -76,8 +76,8 @@ class IntegrationTest < Minitest::Test
                          content_type: 'application/json')
 
     now = Time.now.to_i
-    params = { shop: 'snowdevil.myshopify.com', code: code, timestamp: now, next: '/products?page=2&q=red%20shirt' }
-    encoded_params = "code=#{code}&next=/products?page=2%26q=red%2520shirt&shop=snowdevil.myshopify.com&timestamp=#{now}"
+    params = { shop: 'snowdevil.myshopify.com', code: code, timestamp: now, next: '/products?page=2&q=red%20shirt', state: opts["rack.session"]["omniauth.state"] }
+    encoded_params = "code=#{code}&next=/products?page=2%26q=red%2520shirt&shop=snowdevil.myshopify.com&state=#{opts["rack.session"]["omniauth.state"]}&timestamp=#{now}"
     params[:hmac] = OpenSSL::HMAC.hexdigest(OpenSSL::Digest::SHA256.new, @secret, encoded_params)
 
     response = callback(params)
@@ -136,7 +136,18 @@ class IntegrationTest < Minitest::Test
     assert_equal 'read_products,read_orders,write_content', redirect_params['scope']
     assert_equal 'https://app.example.com/admin/auth/legacy/callback', redirect_params['redirect_uri']
   end
+  def test_callback_with_invalid_state_fails
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    FakeWeb.register_uri(:post, "https://snowdevil.myshopify.com/admin/oauth/access_token",
+                         body: JSON.dump(access_token: access_token),
+                         content_type: 'application/json')
 
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: 'invalid'))
+
+    assert_equal 302, response.status
+    assert_equal '/auth/failure?message=csrf_detected&strategy=shopify', response.location
+  end
   private
 
   def sign_params(params)
@@ -181,6 +192,7 @@ class IntegrationTest < Minitest::Test
       [200, {Rack::CONTENT_TYPE => "text/plain"}, "OK"]
     }
 
+    opts["rack.session"]["omniauth.state"] = SecureRandom.hex(32)
     app = OmniAuth::Builder.new(app) do
       provider :shopify, '123', '53cr3tz', options
     end
@@ -189,11 +201,15 @@ class IntegrationTest < Minitest::Test
   end
 
   def authorize(shop)
-    request.get("https://app.example.com/auth/shopify?shop=#{CGI.escape(shop)}")
+    request.get("https://app.example.com/auth/shopify?shop=#{CGI.escape(shop)}", opts)
   end
 
   def callback(params)
-    request.get("https://app.example.com/auth/shopify/callback?#{Rack::Utils.build_query(params)}")
+    request.get("https://app.example.com/auth/shopify/callback?#{Rack::Utils.build_query(params)}", opts)
+  end
+
+  def opts
+    @opts ||= { "rack.session" => {} }
   end
 
   def request
