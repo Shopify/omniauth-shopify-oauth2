@@ -18,6 +18,14 @@ class IntegrationTest < Minitest::Test
     assert_equal "123", redirect_params['client_id']
     assert_equal "https://app.example.com/auth/shopify/callback", redirect_params['redirect_uri']
     assert_equal "read_products", redirect_params['scope']
+    assert_nil redirect_params['grant_options']
+  end
+
+  def test_authorize_includes_auth_type_when_per_user_permissions_are_requested
+    build_app(per_user_permissions: true)
+    response = authorize('snowdevil.myshopify.com')
+    redirect_params = Rack::Utils.parse_query(URI(response.location).query)
+    assert_equal 'per-user', redirect_params['grant_options']
   end
 
   def test_authorize_overrides_site_with_https_scheme
@@ -178,7 +186,7 @@ class IntegrationTest < Minitest::Test
   def test_callback_with_mismatching_scope_fails
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
-    expect_access_token_request(access_token, 'some_invalid_scope')
+    expect_access_token_request(access_token, 'some_invalid_scope', nil)
 
     response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
@@ -247,6 +255,44 @@ class IntegrationTest < Minitest::Test
     assert_callback_success(response, access_token, code)
   end
 
+  def test_callback_when_per_user_permissions_are_present_but_not_requested
+    build_app(scope: 'scope', per_user_permissions: false)
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'scope', { id: 1, email: 'bob@bobsen.com'})
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_equal 302, response.status
+    assert_equal '/auth/failure?message=invalid_permissions&strategy=shopify', response.location
+  end
+
+  def test_callback_when_per_user_permissions_are_not_present_but_requested
+    build_app(scope: 'scope', per_user_permissions: true)
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'scope', nil)
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_equal 302, response.status
+    assert_equal '/auth/failure?message=invalid_permissions&strategy=shopify', response.location
+  end
+
+  def test_callback_works_when_per_user_permissions_are_present_and_requested
+    build_app(scope: 'scope', per_user_permissions: true)
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'scope', { id: 1, email: 'bob@bobsen.com'})
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_equal 200, response.status
+  end
+
   private
 
   def sign_params(params)
@@ -259,9 +305,9 @@ class IntegrationTest < Minitest::Test
     params
   end
 
-  def expect_access_token_request(access_token, scope)
+  def expect_access_token_request(access_token, scope, associated_user=nil)
     FakeWeb.register_uri(:post, "https://snowdevil.myshopify.com/admin/oauth/access_token",
-                         body: JSON.dump(access_token: access_token, scope: scope),
+                         body: JSON.dump(access_token: access_token, scope: scope, associated_user: associated_user),
                          content_type: 'application/json')
   end
 
