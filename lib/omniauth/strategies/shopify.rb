@@ -17,6 +17,10 @@ module OmniAuth
       option :callback_url
       option :myshopify_domain, 'myshopify.com'
 
+      # When `true`, the authorization phase will fail if the granted scopes
+      # mismatch the requested scopes.
+      option :validate_granted_scopes, true
+
       option :setup, proc { |env|
         request = Rack::Request.new(env)
         env['omniauth.strategy'].options[:client_options][:site] = "https://#{request.GET['shop']}"
@@ -40,6 +44,12 @@ module OmniAuth
 
         calculated_signature = self.class.hmac_sign(self.class.encoded_params_for_signature(params), options.client_secret)
         Rack::Utils.secure_compare(calculated_signature, signature)
+      end
+
+      def valid_scope?(token)
+        params = options.authorize_params.merge(options_for("authorize"))
+        return false unless token && params[:scope] && token['scope']
+        (params[:scope].split(',').sort == token['scope'].split(',').sort)
       end
 
       def self.encoded_params_for_signature(params)
@@ -71,9 +81,19 @@ module OmniAuth
       end
 
       def callback_phase
-        return fail!(:invalid_site) unless valid_site?
-        return fail!(:invalid_signature) unless valid_signature?
+        return fail!(:invalid_site, CallbackError.new(:invalid_site, "OAuth endpoint is not a myshopify site.")) unless valid_site?
+        return fail!(:invalid_signature, CallbackError.new(:invalid_signature, "Signature does not match, it may have been tampered with.")) unless valid_signature?
+
+        token = build_access_token
+        unless valid_scope?(token)
+          return fail!(:invalid_scope, CallbackError.new(:invalid_scope, "Scope does not match, it may have been tampered with."))
+        end
+
         super
+      end
+
+      def build_access_token
+        @built_access_token ||= super
       end
 
       def authorize_params
