@@ -2,7 +2,7 @@ require_relative 'test_helper'
 
 class IntegrationTest < Minitest::Test
   def setup
-    build_app
+    build_app(scope: OmniAuth::Strategies::Shopify::DEFAULT_SCOPE)
   end
 
   def teardown
@@ -51,7 +51,7 @@ class IntegrationTest < Minitest::Test
   def test_callback
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
-    expect_access_token_request(access_token)
+    expect_access_token_request(access_token, OmniAuth::Strategies::Shopify::DEFAULT_SCOPE)
 
     response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
@@ -59,9 +59,10 @@ class IntegrationTest < Minitest::Test
   end
 
   def test_callback_with_legacy_signature
+    build_app scope: OmniAuth::Strategies::Shopify::DEFAULT_SCOPE
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
-    expect_access_token_request(access_token)
+    expect_access_token_request(access_token, OmniAuth::Strategies::Shopify::DEFAULT_SCOPE)
 
     response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]).merge(signature: 'ignored'))
 
@@ -71,9 +72,8 @@ class IntegrationTest < Minitest::Test
   def test_callback_custom_params
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
-    FakeWeb.register_uri(:post, "https://snowdevil.myshopify.com/admin/oauth/access_token",
-                         body: JSON.dump(access_token: access_token),
-                         content_type: 'application/json')
+
+    expect_access_token_request(access_token, OmniAuth::Strategies::Shopify::DEFAULT_SCOPE)
 
     now = Time.now.to_i
     params = { shop: 'snowdevil.myshopify.com', code: code, timestamp: now, next: '/products?page=2&q=red%20shirt', state: opts["rack.session"]["omniauth.state"] }
@@ -136,18 +136,78 @@ class IntegrationTest < Minitest::Test
     assert_equal 'read_products,read_orders,write_content', redirect_params['scope']
     assert_equal 'https://app.example.com/admin/auth/legacy/callback', redirect_params['redirect_uri']
   end
+
   def test_callback_with_invalid_state_fails
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
-    FakeWeb.register_uri(:post, "https://snowdevil.myshopify.com/admin/oauth/access_token",
-                         body: JSON.dump(access_token: access_token),
-                         content_type: 'application/json')
+    expect_access_token_request(access_token, OmniAuth::Strategies::Shopify::DEFAULT_SCOPE)
 
     response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: 'invalid'))
 
     assert_equal 302, response.status
     assert_equal '/auth/failure?message=csrf_detected&strategy=shopify', response.location
   end
+
+  def test_callback_with_mismatching_scope_fails
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'some_invalid_scope')
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_equal 302, response.status
+    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+  end
+
+  def test_callback_with_no_scope_fails
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, nil)
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_equal 302, response.status
+    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+  end
+
+  def test_callback_with_missing_access_scope_fails
+    build_app scope: 'first_scope,second_scope'
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'first_scope')
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_equal 302, response.status
+    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+  end
+
+  def test_callback_with_extra_access_scope_fails
+    build_app scope: 'first_scope,second_scope'
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'second_scope,first_scope,third_scope')
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_equal 302, response.status
+    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+  end
+
+  def test_callback_with_scopes_out_of_order_works
+    build_app scope: 'first_scope,second_scope'
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'second_scope,first_scope')
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_callback_success(response, access_token, code)
+  end
+
   private
 
   def sign_params(params)
@@ -160,9 +220,9 @@ class IntegrationTest < Minitest::Test
     params
   end
 
-  def expect_access_token_request(access_token)
+  def expect_access_token_request(access_token, scope)
     FakeWeb.register_uri(:post, "https://snowdevil.myshopify.com/admin/oauth/access_token",
-                         body: JSON.dump(access_token: access_token),
+                         body: JSON.dump(access_token: access_token, scope: scope),
                          content_type: 'application/json')
   end
 
