@@ -85,6 +85,17 @@ class IntegrationTest < Minitest::Test
     assert_callback_success(response, access_token, code)
   end
 
+  def test_callback_with_spaces_in_scope
+    build_app scope: 'write_products, read_orders'
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'read_orders,write_products')
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_callback_success(response, access_token, code)
+  end
+
   def test_callback_rejects_invalid_hmac
     @secret = 'wrong_secret'
     response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: SecureRandom.hex(16)))
