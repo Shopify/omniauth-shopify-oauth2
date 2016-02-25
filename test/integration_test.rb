@@ -148,6 +148,22 @@ class IntegrationTest < Minitest::Test
     assert_equal 'https://app.example.com/admin/auth/legacy/callback', redirect_params['redirect_uri']
   end
 
+  def test_unnecessary_read_scopes_are_removed
+    build_app scope: 'read_content,read_products,write_products',
+              callback_path: '/admin/auth/legacy/callback',
+              myshopify_domain: 'myshopify.dev:3000',
+              setup: lambda { |env|
+                shop = Rack::Request.new(env).GET['shop']
+                shop += ".myshopify.dev:3000" unless shop.include?(".")
+                env['omniauth.strategy'].options[:client_options][:site] = "https://#{shop}"
+              }
+
+    response = authorize('snowdevil')
+    assert_equal 302, response.status
+    redirect_params = Rack::Utils.parse_query(URI(response.location).query)
+    assert_equal 'read_content,write_products', redirect_params['scope']
+  end
+
   def test_callback_with_invalid_state_fails
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
@@ -213,6 +229,18 @@ class IntegrationTest < Minitest::Test
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'second_scope,first_scope')
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_callback_success(response, access_token, code)
+  end
+
+  def test_callback_with_extra_coma_works
+    build_app scope: 'read_content,,write_products,'
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'read_content,write_products')
 
     response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 

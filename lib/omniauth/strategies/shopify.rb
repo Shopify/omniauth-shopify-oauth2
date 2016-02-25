@@ -6,6 +6,7 @@ module OmniAuth
       # Available scopes: content themes products customers orders script_tags shipping
       # read_*  or write_*
       DEFAULT_SCOPE = 'read_products'
+      SCOPE_DELIMITER = ','
       MINUTE = 60
       CODE_EXPIRES_AFTER = 10 * MINUTE
 
@@ -49,8 +50,14 @@ module OmniAuth
       def valid_scope?(token)
         params = options.authorize_params.merge(options_for("authorize"))
         return false unless token && params[:scope] && token['scope']
-        expected_scope = params[:scope].split(',').map(&:strip).reject(&:empty?).uniq.sort
-        (expected_scope == token['scope'].split(',').sort)
+        expected_scope = normalized_scopes(params[:scope]).sort
+        (expected_scope == token['scope'].split(SCOPE_DELIMITER).sort)
+      end
+
+      def normalized_scopes(scopes)
+        scope_list = scopes.to_s.split(SCOPE_DELIMITER).map(&:strip).reject(&:empty?).uniq
+        ignore_scopes = scope_list.map { |scope| scope =~ /\Awrite_(.*)\z/ && "read_#{$1}" }.compact
+        scope_list - ignore_scopes
       end
 
       def self.encoded_params_for_signature(params)
@@ -99,7 +106,7 @@ module OmniAuth
 
       def authorize_params
         super.tap do |params|
-          params[:scope] ||= DEFAULT_SCOPE
+          params[:scope] = normalized_scopes(params[:scope] || DEFAULT_SCOPE).join(SCOPE_DELIMITER)
         end
       end
 
