@@ -2,7 +2,7 @@ require 'bundler/setup'
 require 'sinatra/base'
 require 'omniauth-shopify-oauth2'
 
-SCOPE = 'read_products,read_orders,read_customers,write_shipping'
+SCOPE = ['read_products', 'read_orders', 'read_customers', 'write_shipping']
 SHOPIFY_API_KEY = ENV['SHOPIFY_API_KEY']
 SHOPIFY_SHARED_SECRET = ENV['SHOPIFY_SHARED_SECRET']
 
