@@ -105,7 +105,7 @@ module OmniAuth
           return fail!(:invalid_scope, CallbackError.new(:invalid_scope, "Scope does not match, it may have been tampered with."))
         end
         unless valid_permissions?(token)
-          return fail!(:invalid_permissions, CallbackError.new(:invalid_permissions, "Requested permission-level does not match."))
+          return fail!(:invalid_permissions, CallbackError.new(:invalid_permissions, "Requested permission level does not match."))
         end
 
         super
@@ -118,7 +118,7 @@ module OmniAuth
       def authorize_params
         super.tap do |params|
           params[:scope] = normalized_scopes(params[:scope] || DEFAULT_SCOPE).join(SCOPE_DELIMITER)
-          params[:grant_options] = 'per-user' if options[:per_user_permissions]
+          params[:grant_options] = ['per-user'] if options[:per_user_permissions]
         end
       end
 
