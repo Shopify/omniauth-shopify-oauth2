@@ -164,6 +164,35 @@ class IntegrationTest < Minitest::Test
     assert_equal 'read_content,write_products', redirect_params['scope']
   end
 
+  def test_conditional_scopes
+    scope_lambda = -> (request) {
+      if request.GET['shop'] == 'snowdevil'
+        'read_content,write_products'
+      else
+        'read_content'
+      end
+    }
+
+    build_app scope: scope_lambda,
+              callback_path: '/admin/auth/legacy/callback',
+              myshopify_domain: 'myshopify.dev:3000',
+              setup: lambda { |env|
+                shop = Rack::Request.new(env).GET['shop']
+                shop += ".myshopify.dev:3000" unless shop.include?(".")
+                env['omniauth.strategy'].options[:client_options][:site] = "https://#{shop}"
+              }
+
+    response = authorize('snowdevil')
+    assert_equal 302, response.status
+    redirect_params = Rack::Utils.parse_query(URI(response.location).query)
+    assert_equal 'read_content,write_products', redirect_params['scope']
+
+    response = authorize('not-snowdevil')
+    assert_equal 302, response.status
+    redirect_params = Rack::Utils.parse_query(URI(response.location).query)
+    assert_equal 'read_content', redirect_params['scope']
+  end
+
   def test_callback_with_invalid_state_fails
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
@@ -176,6 +205,7 @@ class IntegrationTest < Minitest::Test
   end
 
   def test_callback_with_mismatching_scope_fails
+    build_app scope: -> (request) { 'read_content,write_products' }
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'some_invalid_scope')
@@ -225,6 +255,18 @@ class IntegrationTest < Minitest::Test
 
   def test_callback_with_scopes_out_of_order_works
     build_app scope: 'first_scope,second_scope'
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'second_scope,first_scope')
+
+    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_callback_success(response, access_token, code)
+  end
+
+  def test_callback_with_conditional_scopes_works
+    build_app scope: -> (request) { 'first_scope,second_scope' }
 
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)

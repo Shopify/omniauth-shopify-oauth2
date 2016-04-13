@@ -50,7 +50,7 @@ module OmniAuth
       def valid_scope?(token)
         params = options.authorize_params.merge(options_for("authorize"))
         return false unless token && params[:scope] && token['scope']
-        expected_scope = normalized_scopes(params[:scope]).sort
+        expected_scope = normalized_scopes(incontext_scopes(params)).sort
         (expected_scope == token['scope'].split(SCOPE_DELIMITER).sort)
       end
 
@@ -106,12 +106,22 @@ module OmniAuth
 
       def authorize_params
         super.tap do |params|
-          params[:scope] = normalized_scopes(params[:scope] || DEFAULT_SCOPE).join(SCOPE_DELIMITER)
+          params[:scope] = incontext_scopes(params)
         end
       end
 
       def callback_url
         options[:callback_url] || full_host + script_name + callback_path
+      end
+
+      def incontext_scopes(params)
+        scopes = if params[:scope].respond_to? :call
+          params[:scope].call(Rack::Request.new(env))
+        else
+          params[:scope] || DEFAULT_SCOPE
+        end
+
+        normalized_scopes(scopes).join(SCOPE_DELIMITER)
       end
     end
   end
