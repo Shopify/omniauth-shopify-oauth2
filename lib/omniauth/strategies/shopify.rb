@@ -49,8 +49,10 @@ module OmniAuth
 
       def valid_scope?(token)
         params = options.authorize_params.merge(options_for("authorize"))
-        return false unless token && params[:scope] && token['scope']
         expected_scope = normalized_scopes(incontext_scopes(params)).sort
+
+        return false unless token && expected_scope && token['scope']
+
         (expected_scope == token['scope'].split(SCOPE_DELIMITER).sort)
       end
 
