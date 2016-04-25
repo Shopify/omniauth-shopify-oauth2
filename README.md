@@ -30,13 +30,28 @@ end
 
 You can configure the scope, which you pass in to the `provider` method via a `Hash`:
 
-* `scope`: A comma-separated list of permissions you want to request from the user. See [the Shopify API docs](http://docs.shopify.com/api/tutorials/oauth) for a full list of available permissions.
+* `scope`: A comma-separated list of permissions or a lambda that takes a Rack request and returns a comma-separated list of permissions you want to request from the user . See [the Shopify API docs](http://docs.shopify.com/api/tutorials/oauth) for a full list of available permissions.
 
 For example, to request `read_products`, `read_orders` and `write_content` permissions and display the authentication page:
 
 ```ruby
 Rails.application.config.middleware.use OmniAuth::Builder do
   provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'], :scope => 'read_products,read_orders,write_content'
+end
+```
+
+For example, to conditionally request `read_products` or `read_orders` permissions based on the shop's domain:
+
+```ruby
+Rails.application.config.middleware.use OmniAuth::Builder do
+  provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'],
+    :scope => -> (request) {
+      if 'shop1.myshopify.com == request.GET['shop']
+        'read_products'
+      else
+        'read_orders'
+      end
+    }
 end
 ```
 
