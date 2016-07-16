@@ -21,6 +21,7 @@ Then `bundle install`.
 Here's a quick example, adding the middleware to a Rails app in `config/initializers/omniauth.rb`:
 
 ```ruby
+
 Rails.application.config.middleware.use OmniAuth::Builder do
   provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET']
 end
@@ -32,17 +33,25 @@ You can configure the scope, which you pass in to the `provider` method via a `H
 
 * `scope`: A comma-separated list of permissions you want to request from the user. See [the Shopify API docs](http://docs.shopify.com/api/tutorials/oauth) for a full list of available permissions.
 
+* You **MUST** initiate the OmniAuth process by passing in a `shop` query parameter of the shop you’re requesting permissions for example. http://localhost:3000/auth/shopify?shop=example.myshopify.com. 
+
+* `setup`: You can provide a custom lambda which dynamically sets the site in the initializer 
+
 For example, to request `read_products`, `read_orders` and `write_content` permissions and display the authentication page:
 
 ```ruby
+
 Rails.application.config.middleware.use OmniAuth::Builder do
-  provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'], :scope => 'read_products,read_orders,write_content'
+  provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'],
+            :scope => 'read_products,read_orders,write_content',
+            :setup => lambda { |env| params = Rack::Utils.parse_query(env['QUERY_STRING'])
+                                     env['omniauth.strategy'].options[:client_options][:site] = "https://#{params['shop']}" }
 end
 ```
 
-## Authentication Hash
+## Omniauth Authentication Hash
 
-Here's an example *Authentication Hash* available in `request.env['omniauth.auth']`:
+Here's an example *Authentication Hash* which is will be available after a successful authentication with shopify. It is  available in `request.env['omniauth.auth']`:
 
 ```ruby
 {
