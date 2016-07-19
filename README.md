@@ -21,7 +21,6 @@ Then `bundle install`.
 Here's a quick example, adding the middleware to a Rails app in `config/initializers/omniauth.rb`:
 
 ```ruby
-
 Rails.application.config.middleware.use OmniAuth::Builder do
   provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET']
 end
@@ -35,23 +34,17 @@ You can configure the scope, which you pass in to the `provider` method via a `H
 
 * You **MUST** initiate the OmniAuth process by passing in a `shop` query parameter of the shop you’re requesting permissions for example. http://localhost:3000/auth/shopify?shop=example.myshopify.com. 
 
-* `setup`: You can provide a custom lambda which dynamically sets the site in the initializer 
-
 For example, to request `read_products`, `read_orders` and `write_content` permissions and display the authentication page:
 
 ```ruby
-
 Rails.application.config.middleware.use OmniAuth::Builder do
-  provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'],
-            :scope => 'read_products,read_orders,write_content',
-            :setup => lambda { |env| params = Rack::Utils.parse_query(env['QUERY_STRING'])
-                                     env['omniauth.strategy'].options[:client_options][:site] = "https://#{params['shop']}" }
+  provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'], :scope => 'read_products,read_orders,write_content'
 end
 ```
 
-## Omniauth Authentication Hash
+## Authentication Hash
 
-Here's an example *Authentication Hash* which is will be available after a successful authentication with shopify. It is  available in `request.env['omniauth.auth']`:
+Here's an example *Authentication Hash* available in `request.env['omniauth.auth']`:
 
 ```ruby
 {
@@ -72,3 +65,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+
