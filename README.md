@@ -26,13 +26,21 @@ Rails.application.config.middleware.use OmniAuth::Builder do
 end
 ```
 
+Authenticate the user by having them visit /auth/shopify with a `shop` query parameter of their shop's myshopify.com domain. For example, the following form could be used
+
+```html
+<form action="/auth/shopify" method="get">
+  <label for="shop">Enter your store's URL:</label>
+  <input type="text" name="shop" placeholder="your-shop-url.myshopify.com">
+  <button type="submit">Log In</button>
+</form>
+```
+
 ## Configuring
 
 You can configure the scope, which you pass in to the `provider` method via a `Hash`:
 
 * `scope`: A comma-separated list of permissions you want to request from the user. See [the Shopify API docs](http://docs.shopify.com/api/tutorials/oauth) for a full list of available permissions.
-
-* You **MUST** initiate the OmniAuth process by passing in a `shop` query parameter of the shop you’re requesting permissions for example. http://localhost:3000/auth/shopify?shop=example.myshopify.com. 
 
 For example, to request `read_products`, `read_orders` and `write_content` permissions and display the authentication page:
 
