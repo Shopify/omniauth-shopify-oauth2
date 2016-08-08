@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.name     = 'omniauth-shopify-oauth2'
   s.version  = OmniAuth::Shopify::VERSION
   s.authors  = ['Denis Odorcic']
-  s.email    = ['denis.odorcic@shopify.com']
+  s.email    = ['gems@shopify.com']
   s.summary  = 'Shopify strategy for OmniAuth'
   s.homepage = 'https://github.com/Shopify/omniauth-shopify-oauth2'
   s.license = 'MIT'
