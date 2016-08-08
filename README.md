@@ -40,13 +40,13 @@ Authenticate the user by having them visit /auth/shopify with a `shop` query par
 
 You can configure the scope, which you pass in to the `provider` method via a `Hash`:
 
-* `scope`: A comma-separated list of permissions you want to request from the user. See [the Shopify API docs](http://docs.shopify.com/api/tutorials/oauth) for a full list of available permissions.
+* `scope`: An array of permissions you want to request from the user. See [the Shopify API docs](http://docs.shopify.com/api/tutorials/oauth) for a full list of available permissions.
 
 For example, to request `read_products`, `read_orders` and `write_content` permissions and display the authentication page:
 
 ```ruby
 Rails.application.config.middleware.use OmniAuth::Builder do
-  provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'], :scope => 'read_products,read_orders,write_content'
+  provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'], :scope => ['read_products', 'read_orders', 'write_content']
 end
 ```
 

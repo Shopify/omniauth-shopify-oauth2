@@ -29,6 +29,11 @@ module OmniAuth
 
       uid { URI.parse(options[:client_options][:site]).host }
 
+      def initialize(*args, &block)
+        super(*args, &block)
+        options[:scope] = options[:scope].join(',') if options[:scope].is_a?(Array)
+      end
+
       def valid_site?
         !!(/\A(https|http)\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.#{Regexp.quote(options[:myshopify_domain])}[\/]?\z/ =~ options[:client_options][:site])
       end
