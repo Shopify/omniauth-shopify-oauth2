@@ -13,7 +13,7 @@ class IntegrationTest < Minitest::Test
   def test_authorize
     response = authorize('snowdevil.myshopify.com')
     assert_equal 302, response.status
-    assert_match /\A#{Regexp.quote("https://snowdevil.myshopify.com/admin/oauth/authorize?")}/, response.location
+    assert_match %r{\A#{Regexp.quote(shopify_authorize_url)}}, response.location
     redirect_params = Rack::Utils.parse_query(URI(response.location).query)
     assert_equal "123", redirect_params['client_id']
     assert_equal "https://app.example.com/auth/shopify/callback", redirect_params['redirect_uri']
@@ -25,7 +25,7 @@ class IntegrationTest < Minitest::Test
     build_app(per_user_permissions: true)
     response = authorize('snowdevil.myshopify.com')
     redirect_params = Rack::Utils.parse_query(URI(response.location).query)
-    assert_equal 'per-user', redirect_params['grant_options']
+    assert_equal 'per-user', redirect_params['grant_options[]']
   end
 
   def test_authorize_overrides_site_with_https_scheme
@@ -35,7 +35,7 @@ class IntegrationTest < Minitest::Test
     }
 
     response = authorize('snowdevil.myshopify.com')
-    assert_match /\A#{Regexp.quote("https://snowdevil.myshopify.com/admin/oauth/authorize?")}/, response.location
+    assert_match %r{\A#{Regexp.quote(shopify_authorize_url)}}, response.location
   end
 
   def test_site_validation
@@ -150,7 +150,7 @@ class IntegrationTest < Minitest::Test
 
     response = authorize('snowdevil')
     assert_equal 302, response.status
-    assert_match /\A#{Regexp.quote("https://snowdevil.myshopify.dev:3000/admin/oauth/authorize?")}/, response.location
+    assert_match %r{\A#{Regexp.quote("https://snowdevil.myshopify.dev:3000/admin/oauth/authorize?")}}, response.location
     redirect_params = Rack::Utils.parse_query(URI(response.location).query)
     assert_equal 'read_products,read_orders,write_content', redirect_params['scope']
     assert_equal 'https://app.example.com/admin/auth/legacy/callback', redirect_params['redirect_uri']
@@ -328,7 +328,7 @@ class IntegrationTest < Minitest::Test
   def assert_auth_failure(response, reason)
     assert_nil FakeWeb.last_request
     assert_equal 302, response.status
-    assert_match /\A#{Regexp.quote("/auth/failure?message=#{reason}")}/, response.location
+    assert_match %r{\A#{Regexp.quote("/auth/failure?message=#{reason}")}}, response.location
   end
 
   def build_app(options={})
@@ -359,5 +359,9 @@ class IntegrationTest < Minitest::Test
 
   def request
     Rack::MockRequest.new(@app)
+  end
+
+  def shopify_authorize_url
+    "https://snowdevil.myshopify.com/admin/oauth/authorize?"
   end
 end
