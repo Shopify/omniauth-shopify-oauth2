@@ -115,7 +115,7 @@ module OmniAuth
           return fail!(:invalid_scope, CallbackError.new(:invalid_scope, "Scope does not match, it may have been tampered with."))
         end
         unless valid_permissions?(token)
-          return fail!(:invalid_permissions, CallbackError.new(:invalid_permissions, "Requested permission level does not match."))
+          return fail!(:invalid_permissions, CallbackError.new(:invalid_permissions, "Requested API access mode does not match."))
         end
 
         super
