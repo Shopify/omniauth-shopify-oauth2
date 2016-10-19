@@ -37,6 +37,7 @@ module OmniAuth
         if access_token
           {
             'associated_user' => access_token['associated_user'],
+            'associated_user_scope' => access_token['associated_user_scope'],
             'scope' => access_token['scope'],
           }
         end
