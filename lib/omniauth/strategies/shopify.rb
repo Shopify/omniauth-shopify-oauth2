@@ -18,6 +18,10 @@ module OmniAuth
       option :callback_url
       option :myshopify_domain, 'myshopify.com'
 
+      # When `true`, the user's permission level will apply (in addition to
+      # the requested access scope) when making API requests to Shopify.
+      option :per_user_permissions, false
+
       # When `true`, the authorization phase will fail if the granted scopes
       # mismatch the requested scopes.
       option :validate_granted_scopes, true
@@ -28,6 +32,16 @@ module OmniAuth
       }
 
       uid { URI.parse(options[:client_options][:site]).host }
+
+      extra do
+        if access_token
+          {
+            'associated_user' => access_token['associated_user'],
+            'associated_user_scope' => access_token['associated_user_scope'],
+            'scope' => access_token['scope'],
+          }
+        end
+      end
 
       def valid_site?
         !!(/\A(https|http)\:\/\/[a-zA-Z0-9][a-zA-Z0-9\-]*\.#{Regexp.quote(options[:myshopify_domain])}[\/]?\z/ =~ options[:client_options][:site])
@@ -71,6 +85,10 @@ module OmniAuth
         OpenSSL::HMAC.hexdigest(OpenSSL::Digest::SHA256.new, secret, encoded_params)
       end
 
+      def valid_permissions?(token)
+        token && (options[:per_user_permissions] == !token['associated_user'].nil?)
+      end
+
       def fix_https
         options[:client_options][:site].gsub!(/\Ahttp\:/, 'https:')
       end
@@ -96,6 +114,9 @@ module OmniAuth
         unless valid_scope?(token)
           return fail!(:invalid_scope, CallbackError.new(:invalid_scope, "Scope does not match, it may have been tampered with."))
         end
+        unless valid_permissions?(token)
+          return fail!(:invalid_permissions, CallbackError.new(:invalid_permissions, "Requested API access mode does not match."))
+        end
 
         super
       end
@@ -107,6 +128,7 @@ module OmniAuth
       def authorize_params
         super.tap do |params|
           params[:scope] = normalized_scopes(params[:scope] || DEFAULT_SCOPE).join(SCOPE_DELIMITER)
+          params[:grant_options] = ['per-user'] if options[:per_user_permissions]
         end
       end
 
