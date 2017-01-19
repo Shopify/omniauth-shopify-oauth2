@@ -29,7 +29,7 @@ end
 Authenticate the user by having them visit /auth/shopify with a `shop` query parameter of their shop's myshopify.com domain. For example, the following form could be used
 
 ```html
-<form action="/auth/shopify" method="get">
+<form action="/auth/shopify" method="post">
   <label for="shop">Enter your store's URL:</label>
   <input type="text" name="shop" placeholder="your-shop-url.myshopify.com">
   <button type="submit">Log In</button>
