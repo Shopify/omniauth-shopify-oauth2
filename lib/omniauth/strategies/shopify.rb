@@ -90,7 +90,7 @@ module OmniAuth
       end
 
       def fix_https
-        options[:client_options][:site].gsub!(/\Ahttp\:/, 'https:')
+        options[:client_options][:site] = options[:client_options][:site].gsub(/\Ahttp\:/, 'https:')
       end
 
       def setup_phase

@@ -29,6 +29,12 @@ describe OmniAuth::Strategies::Shopify do
       subject.options[:client_options][:site].should eq('https://foo.bar/')
     end
 
+    it 'replaces http scheme by https with an immutable string' do
+      @options = {:client_options => {:site => 'http://foo.bar/'.freeze}}
+      subject.fix_https
+      subject.options[:client_options][:site].should eq('https://foo.bar/')
+    end
+
     it 'does not replace https scheme' do
       @options = {:client_options => {:site => 'https://foo.bar/'}}
       subject.fix_https
