@@ -22,10 +22,6 @@ module OmniAuth
       # the requested access scope) when making API requests to Shopify.
       option :per_user_permissions, false
 
-      # When `true`, the authorization phase will fail if the granted scopes
-      # mismatch the requested scopes.
-      option :validate_granted_scopes, true
-
       option :setup, proc { |env|
         request = Rack::Request.new(env)
         env['omniauth.strategy'].options[:client_options][:site] = "https://#{request.GET['shop']}"
