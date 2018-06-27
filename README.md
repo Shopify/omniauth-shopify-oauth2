@@ -38,6 +38,8 @@ Authenticate the user by having them visit /auth/shopify with a `shop` query par
 
 ## Configuring
 
+### Scope
+
 You can configure the scope, which you pass in to the `provider` method via a `Hash`:
 
 * `scope`: A comma-separated list of permissions you want to request from the user. See [the Shopify API docs](http://docs.shopify.com/api/tutorials/oauth) for a full list of available permissions.
@@ -47,6 +49,19 @@ For example, to request `read_products`, `read_orders` and `write_content` permi
 ```ruby
 Rails.application.config.middleware.use OmniAuth::Builder do
   provider :shopify, ENV['SHOPIFY_API_KEY'], ENV['SHOPIFY_SHARED_SECRET'], :scope => 'read_products,read_orders,write_content'
+end
+```
+
+### Online Access
+
+Shopify offers two different types of access tokens: [online access and offline access](https://help.shopify.com/api/getting-started/authentication/oauth/api-access-modes). You can configure for online-access by passing the `per_user_permissions` option:
+
+```
+Rails.application.config.middleware.use OmniAuth::Builder do
+  provider :shopify, ENV['SHOPIFY_API_KEY'],
+                     ENV['SHOPIFY_SHARED_SECRET'],
+                     :scope => 'read_orders',
+                     :per_user_permissions => true
 end
 ```
 
