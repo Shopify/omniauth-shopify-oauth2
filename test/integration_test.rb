@@ -52,7 +52,7 @@ class IntegrationTest < Minitest::Test
       response = authorize(shop)
       assert_auth_failure(response, 'invalid_site')
 
-      response = callback(sign_params(shop: shop, code: code))
+      response = callback(sign_with_new_secret(shop: shop, code: code))
       assert_auth_failure(response, 'invalid_site')
     end
   end
@@ -62,7 +62,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, OmniAuth::Strategies::Shopify::DEFAULT_SCOPE)
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_callback_success(response, access_token, code)
   end
@@ -73,7 +73,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, OmniAuth::Strategies::Shopify::DEFAULT_SCOPE)
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]).merge(signature: 'ignored'))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]).merge(signature: 'ignored'))
 
     assert_callback_success(response, access_token, code)
   end
@@ -100,21 +100,21 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'read_orders,write_products')
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_callback_success(response, access_token, code)
   end
 
   def test_callback_rejects_invalid_hmac
     @secret = 'wrong_secret'
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: SecureRandom.hex(16)))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: SecureRandom.hex(16)))
 
     assert_auth_failure(response, 'invalid_signature')
   end
 
   def test_callback_rejects_old_timestamps
     expired_timestamp = Time.now.to_i - OmniAuth::Strategies::Shopify::CODE_EXPIRES_AFTER - 1
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: SecureRandom.hex(16), timestamp: expired_timestamp))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: SecureRandom.hex(16), timestamp: expired_timestamp))
 
     assert_auth_failure(response, 'invalid_signature')
   end
@@ -129,7 +129,7 @@ class IntegrationTest < Minitest::Test
 
   def test_callback_rejects_body_params
     code = SecureRandom.hex(16)
-    params = sign_params(shop: 'snowdevil.myshopify.com', code: code)
+    params = sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code)
     body = Rack::Utils.build_nested_query(unsigned: 'value')
 
     response = request.get("https://app.example.com/auth/shopify/callback?#{Rack::Utils.build_query(params)}",
@@ -189,7 +189,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, OmniAuth::Strategies::Shopify::DEFAULT_SCOPE)
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: 'invalid'))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: 'invalid'))
 
     assert_equal 302, response.status
     assert_equal '/auth/failure?message=csrf_detected&strategy=shopify', response.location
@@ -200,7 +200,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'some_invalid_scope', nil)
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_equal 302, response.status
     assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
@@ -211,7 +211,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, nil)
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_equal 302, response.status
     assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
@@ -224,7 +224,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'first_scope')
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_equal 302, response.status
     assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
@@ -237,7 +237,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'second_scope,first_scope,third_scope')
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_equal 302, response.status
     assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
@@ -250,7 +250,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'second_scope,first_scope')
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_callback_success(response, access_token, code)
   end
@@ -262,7 +262,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'read_content,write_products')
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_callback_success(response, access_token, code)
   end
@@ -274,7 +274,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'scope', { id: 1, email: 'bob@bobsen.com'})
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_equal 302, response.status
     assert_equal '/auth/failure?message=invalid_permissions&strategy=shopify', response.location
@@ -287,7 +287,7 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'scope', nil)
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_equal 302, response.status
     assert_equal '/auth/failure?message=invalid_permissions&strategy=shopify', response.location
@@ -300,18 +300,45 @@ class IntegrationTest < Minitest::Test
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'scope', { id: 1, email: 'bob@bobsen.com'})
 
-    response = callback(sign_params(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
     assert_equal 200, response.status
   end
 
+  def test_callback_works_with_old_secret
+    build_app scope: OmniAuth::Strategies::Shopify::DEFAULT_SCOPE
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, OmniAuth::Strategies::Shopify::DEFAULT_SCOPE)
+
+    signed_params = sign_with_old_secret(
+      shop: 'snowdevil.myshopify.com',
+      code: code,
+      state: opts["rack.session"]["omniauth.state"]
+    )
+
+    response = callback(signed_params)
+
+    assert_callback_success(response, access_token, code)
+  end
+
   private
 
-  def sign_params(params)
+  def sign_with_old_secret(params)
+    params = add_time(params)
+    encoded_params = OmniAuth::Strategies::Shopify.encoded_params_for_signature(params)
+    params['hmac'] = OmniAuth::Strategies::Shopify.hmac_sign(encoded_params, @old_secret)
+    params
+  end
+
+  def add_time(params)
     params = params.dup
-
     params[:timestamp] ||= Time.now.to_i
+    params
+  end
 
+  def sign_with_new_secret(params)
+    params = add_time(params)
     encoded_params = OmniAuth::Strategies::Shopify.encoded_params_for_signature(params)
     params['hmac'] = OmniAuth::Strategies::Shopify.hmac_sign(encoded_params, @secret)
     params
@@ -344,6 +371,9 @@ class IntegrationTest < Minitest::Test
   end
 
   def build_app(options={})
+    @old_secret = '12d34s1'
+    @secret = '53cr3tz'
+    options.merge!(old_client_secret: @old_secret)
     app = proc { |env|
       @omniauth_result = env['omniauth.auth']
       [200, {Rack::CONTENT_TYPE => "text/plain"}, "OK"]
@@ -351,9 +381,8 @@ class IntegrationTest < Minitest::Test
 
     opts["rack.session"]["omniauth.state"] = SecureRandom.hex(32)
     app = OmniAuth::Builder.new(app) do
-      provider :shopify, '123', '53cr3tz', options
+      provider :shopify, '123', '53cr3tz' , options
     end
-    @secret = '53cr3tz'
     @app = Rack::Session::Cookie.new(app, secret: SecureRandom.hex(64))
   end
 
