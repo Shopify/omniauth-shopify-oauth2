@@ -34,7 +34,7 @@ class IntegrationTest < Minitest::Test
       env['omniauth.strategy'].options[:client_options][:site] = "http://#{params['shop']}"
     }
 
-    response = authorize('snowdevil.myshopify.com')
+    response = request.get('https://app.example.com/auth/shopify?shop=snowdevil.myshopify.com')
     assert_match %r{\A#{Regexp.quote(shopify_authorize_url)}}, response.location
   end
 
@@ -48,6 +48,7 @@ class IntegrationTest < Minitest::Test
       'user@snowdevil.myshopify.com',   # shop contains user
       'snowdevil.myshopify.com:22',     # shop contains port
     ].each do |shop, valid|
+      @shop = shop
       response = authorize(shop)
       assert_auth_failure(response, 'invalid_site')
 
@@ -133,7 +134,10 @@ class IntegrationTest < Minitest::Test
 
     response = request.get("https://app.example.com/auth/shopify/callback?#{Rack::Utils.build_query(params)}",
                            input: body,
-                           "CONTENT_TYPE" => 'application/x-www-form-urlencoded')
+                           "CONTENT_TYPE" => 'application/x-www-form-urlencoded',
+                           'rack.session' => {
+                              'shopify.omniauth_params' => { shop: 'snowdevil.myshopify.com' }
+                            })
 
     assert_auth_failure(response, 'invalid_signature')
   end
@@ -148,12 +152,21 @@ class IntegrationTest < Minitest::Test
                 env['omniauth.strategy'].options[:client_options][:site] = "https://#{shop}"
               }
 
-    response = authorize('snowdevil')
+    response = request.get("https://app.example.com/auth/shopify?shop=snowdevil.myshopify.dev:3000")
     assert_equal 302, response.status
     assert_match %r{\A#{Regexp.quote("https://snowdevil.myshopify.dev:3000/admin/oauth/authorize?")}}, response.location
     redirect_params = Rack::Utils.parse_query(URI(response.location).query)
     assert_equal 'read_products,read_orders,write_content', redirect_params['scope']
     assert_equal 'https://app.example.com/admin/auth/legacy/callback', redirect_params['redirect_uri']
+  end
+
+  def test_default_setup_reads_shop_from_session
+    build_app
+    response = authorize('snowdevil.myshopify.com')
+    assert_equal 302, response.status
+    assert_match %r{\A#{Regexp.quote("https://snowdevil.myshopify.com/admin/oauth/authorize?")}}, response.location
+    redirect_params = Rack::Utils.parse_query(URI(response.location).query)
+    assert_equal 'https://app.example.com/auth/shopify/callback', redirect_params['redirect_uri']
   end
 
   def test_unnecessary_read_scopes_are_removed
@@ -162,11 +175,10 @@ class IntegrationTest < Minitest::Test
               myshopify_domain: 'myshopify.dev:3000',
               setup: lambda { |env|
                 shop = Rack::Request.new(env).GET['shop']
-                shop += ".myshopify.dev:3000" unless shop.include?(".")
                 env['omniauth.strategy'].options[:client_options][:site] = "https://#{shop}"
               }
 
-    response = authorize('snowdevil')
+    response = request.get("https://app.example.com/auth/shopify?shop=snowdevil.myshopify.dev:3000")
     assert_equal 302, response.status
     redirect_params = Rack::Utils.parse_query(URI(response.location).query)
     assert_equal 'read_content,write_products', redirect_params['scope']
@@ -345,11 +357,17 @@ class IntegrationTest < Minitest::Test
     @app = Rack::Session::Cookie.new(app, secret: SecureRandom.hex(64))
   end
 
+  def shop
+    @shop ||= 'snowdevil.myshopify.com'
+  end
+
   def authorize(shop)
-    request.get("https://app.example.com/auth/shopify?shop=#{CGI.escape(shop)}", opts)
+    @opts['rack.session']['shopify.omniauth_params'] = { shop: shop }
+    request.get('https://app.example.com/auth/shopify', opts)
   end
 
   def callback(params)
+    @opts['rack.session']['shopify.omniauth_params'] = { shop: shop }
     request.get("https://app.example.com/auth/shopify/callback?#{Rack::Utils.build_query(params)}", opts)
   end
 

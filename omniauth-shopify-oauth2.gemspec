@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 2.1.9'
 
   s.add_runtime_dependency 'omniauth-oauth2', '~> 1.5.0'
+  s.add_runtime_dependency 'activesupport'
 
   s.add_development_dependency 'minitest', '~> 5.6'
   s.add_development_dependency 'fakeweb', '~> 1.3'
