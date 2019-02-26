@@ -17,6 +17,7 @@ module OmniAuth
 
       option :callback_url
       option :myshopify_domain, 'myshopify.com'
+      option :old_client_secret
 
       # When `true`, the user's permission level will apply (in addition to
       # the requested access scope) when making API requests to Shopify.
@@ -61,8 +62,10 @@ module OmniAuth
 
         return false unless timestamp.to_i > Time.now.to_i - CODE_EXPIRES_AFTER
 
-        calculated_signature = self.class.hmac_sign(self.class.encoded_params_for_signature(params), options.client_secret)
-        Rack::Utils.secure_compare(calculated_signature, signature)
+        new_secret = options.client_secret
+        old_secret = options.old_client_secret
+
+        validate_signature(new_secret) || (old_secret && validate_signature(old_secret))
       end
 
       def valid_scope?(token)
@@ -138,6 +141,14 @@ module OmniAuth
 
       def callback_url
         options[:callback_url] || full_host + script_name + callback_path
+      end
+
+      private
+
+      def validate_signature(secret)
+        params = request.GET
+        calculated_signature = self.class.hmac_sign(self.class.encoded_params_for_signature(params), secret)
+        Rack::Utils.secure_compare(calculated_signature, params['hmac'])
       end
     end
   end
