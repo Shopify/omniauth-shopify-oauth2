@@ -86,7 +86,7 @@ class IntegrationTest < Minitest::Test
 
     now = Time.now.to_i
     params = { shop: 'snowdevil.myshopify.com', code: code, timestamp: now, next: '/products?page=2&q=red%20shirt', state: opts["rack.session"]["omniauth.state"] }
-    encoded_params = "code=#{code}&next=/products?page=2%26q=red%2520shirt&shop=snowdevil.myshopify.com&state=#{opts["rack.session"]["omniauth.state"]}&timestamp=#{now}"
+    encoded_params = "code=#{code}&next=%2Fproducts%3Fpage%3D2%26q%3Dred%2520shirt&shop=snowdevil.myshopify.com&state=#{opts["rack.session"]["omniauth.state"]}&timestamp=#{now}"
     params[:hmac] = OpenSSL::HMAC.hexdigest(OpenSSL::Digest::SHA256.new, @secret, encoded_params)
 
     response = callback(params)
