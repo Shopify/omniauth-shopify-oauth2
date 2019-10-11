@@ -44,6 +44,7 @@ module OmniAuth
             'associated_user' => access_token['associated_user'],
             'associated_user_scope' => access_token['associated_user_scope'],
             'scope' => access_token['scope'],
+            'session' => access_token['session']
           }
         end
       end
