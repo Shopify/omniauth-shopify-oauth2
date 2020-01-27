@@ -335,6 +335,28 @@ class IntegrationTest < Minitest::Test
     assert_callback_success(response, access_token, code)
   end
 
+  def test_callback_when_creds_are_invalid
+    build_app scope: OmniAuth::Strategies::Shopify::DEFAULT_SCOPE
+
+    FakeWeb.register_uri(
+      :post,
+      "https://snowdevil.myshopify.com/admin/oauth/access_token",
+      status: [ "401", "Invalid token" ],
+      body: "Token is invalid or has already been requested"
+    )
+
+    signed_params = sign_with_old_secret(
+      shop: 'snowdevil.myshopify.com',
+      code: SecureRandom.hex(16),
+      state: opts["rack.session"]["omniauth.state"]
+    )
+
+    response = callback(signed_params)
+
+    assert_equal 302, response.status
+    assert_equal '/auth/failure?message=invalid_credentials&strategy=shopify', response.location
+  end
+
   private
 
   def sign_with_old_secret(params)

@@ -127,6 +127,8 @@ module OmniAuth
         end
 
         super
+      rescue ::OAuth2::Error => e
+        fail!(:invalid_credentials, e)
       end
 
       def build_access_token
