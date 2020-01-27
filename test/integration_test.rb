@@ -345,7 +345,7 @@ class IntegrationTest < Minitest::Test
       body: "Token is invalid or has already been requested"
     )
 
-    signed_params = sign_with_old_secret(
+    signed_params = sign_with_new_secret(
       shop: 'snowdevil.myshopify.com',
       code: SecureRandom.hex(16),
       state: opts["rack.session"]["omniauth.state"]
