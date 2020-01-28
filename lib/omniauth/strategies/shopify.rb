@@ -86,7 +86,7 @@ module OmniAuth
         params = params.dup
         params.delete('hmac')
         params.delete('signature') # deprecated signature
-        params.map{|k,v| "#{URI.escape(k.to_s, '&=%')}=#{URI.escape(v.to_s, '&%')}"}.sort.join('&')
+        Rack::Utils.build_query(params.sort)
       end
 
       def self.hmac_sign(encoded_params, secret)
