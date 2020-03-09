@@ -1,4 +1,3 @@
-require 'spec_helper'
 require 'omniauth-shopify-oauth2'
 require 'base64'
 
