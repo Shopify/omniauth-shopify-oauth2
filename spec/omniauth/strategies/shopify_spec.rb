@@ -140,4 +140,80 @@ describe OmniAuth::Strategies::Shopify do
       subject.valid_site?.should eq(true)
     end
   end
+
+  describe '#valid_permissions?' do
+    let(:associated_user) do
+      {}
+    end
+
+    let(:token) do
+      {
+        'associated_user' => associated_user,
+      }
+    end
+
+    it 'returns false if there is no token' do
+      expect(subject.valid_permissions?(nil)).to be_falsey
+    end
+
+    context 'with per_user_permissions is present' do
+      before do
+        @options = @options.merge(per_user_permissions: true)
+      end
+
+      context 'when token does not have associated user' do
+        let(:associated_user) { nil }
+
+        it 'return false' do
+          expect(subject.valid_permissions?(token)).to be_falsey
+        end
+      end
+
+      context 'when token has associated user' do
+        it 'return true' do
+          expect(subject.valid_permissions?(token)).to be_truthy
+        end
+      end
+    end
+
+    context 'with per_user_permissions is false' do
+      before do
+        @options = @options.merge(per_user_permissions: false)
+      end
+
+      context 'when token does not have associated user' do
+        let(:associated_user) { nil }
+
+        it 'return true' do
+          expect(subject.valid_permissions?(token)).to be_truthy
+        end
+      end
+
+      context 'when token has associated user' do
+        it 'return false' do
+          expect(subject.valid_permissions?(token)).to be_falsey
+        end
+      end
+    end
+
+    context 'with per_user_permissions is nil' do
+      before do
+        @options = @options.merge(per_user_permissions: nil)
+      end
+
+      context 'when token does not have associated user' do
+        let(:associated_user) { nil }
+
+        it 'return true' do
+          expect(subject.valid_permissions?(token)).to be_truthy
+        end
+      end
+
+      context 'when token has associated user' do
+        it 'return false' do
+          expect(subject.valid_permissions?(token)).to be_falsey
+        end
+      end
+    end
+  end
 end

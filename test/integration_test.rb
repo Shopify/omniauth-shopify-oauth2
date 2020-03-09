@@ -280,6 +280,18 @@ class IntegrationTest < Minitest::Test
     assert_equal '/auth/failure?message=invalid_permissions&strategy=shopify', response.location
   end
 
+  def test_callback_when_per_user_permissions_are_not_present_and_options_is_nil
+    build_app(scope: 'scope', per_user_permissions: nil)
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'scope', nil)
+
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_callback_success(response, access_token, code)
+  end
+
   def test_callback_when_per_user_permissions_are_not_present_but_requested
     build_app(scope: 'scope', per_user_permissions: true)
 

@@ -94,7 +94,12 @@ module OmniAuth
       end
 
       def valid_permissions?(token)
-        token && (options[:per_user_permissions] == !token['associated_user'].nil?)
+        return false unless token
+
+        return true if options[:per_user_permissions] && token['associated_user']
+        return true if !options[:per_user_permissions] && !token['associated_user']
+
+        false
       end
 
       def fix_https
