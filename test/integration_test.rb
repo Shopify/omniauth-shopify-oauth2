@@ -169,6 +169,17 @@ class IntegrationTest < Minitest::Test
     assert_equal 'https://app.example.com/auth/shopify/callback', redirect_params['redirect_uri']
   end
 
+  def test_default_setup_reads_shop_from_params
+    build_app
+
+    response = request.get('https://app.example.com/auth/shopify?shop=snowdevil.myshopify.com', opts)
+
+    assert_equal 302, response.status
+    assert_match %r{\A#{Regexp.quote("https://snowdevil.myshopify.com/admin/oauth/authorize?")}}, response.location
+    redirect_params = Rack::Utils.parse_query(URI(response.location).query)
+    assert_equal 'https://app.example.com/auth/shopify/callback', redirect_params['redirect_uri']
+  end
+
   def test_unnecessary_read_scopes_are_removed
     build_app scope: 'read_content,read_products,write_products',
               callback_path: '/admin/auth/legacy/callback',

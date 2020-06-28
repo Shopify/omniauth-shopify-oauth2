@@ -1,5 +1,6 @@
 require 'bundler/setup'
 require 'sinatra/base'
+require 'active_support/core_ext/hash'
 require 'omniauth-shopify-oauth2'
 
 SCOPE = 'read_products,read_orders,read_customers,write_shipping'
