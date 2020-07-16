@@ -36,6 +36,35 @@ Authenticate the user by having them visit /auth/shopify with a `shop` query par
 </form>
 ```
 
+Or without form `/auth/shopify?shop=your-shop-url.myshopify.com`
+Alternatively you can put shop parameter to session as [Shopify App](https://github.com/Shopify/shopify_app) do
+
+```ruby
+session['shopify.omniauth_params'] = { shop: params[:shop] }
+```
+
+And finally it's possible to use your own query parameter by overriding default setup method. For example, like below:
+
+```ruby
+Rails.application.config.middleware.use OmniAuth::Builder do
+  provider :shopify,
+    ENV['SHOPIFY_API_KEY'],
+    ENV['SHOPIFY_SHARED_SECRET'],
+    option :setup, proc { |env|
+      strategy = env['omniauth.strategy']
+
+
+
+      site = if strategy.request.params['site']
+        "https://#{strategy.request.params['site']}"
+      else
+        ''
+      end
+
+      env['omniauth.strategy'].options[:client_options][:site] = site
+    }
+```
+
 ## Configuring
 
 ### Scope
