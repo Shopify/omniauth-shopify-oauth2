@@ -26,7 +26,11 @@ module OmniAuth
       option :setup, proc { |env|
         strategy = env['omniauth.strategy']
 
-        shopify_auth_params = strategy.session['shopify.omniauth_params'] && strategy.session['shopify.omniauth_params'].with_indifferent_access
+        shopify_auth_params = strategy.session['shopify.omniauth_params'] ||
+          strategy.session['omniauth.params'] ||
+          strategy.request.params
+
+        shopify_auth_params = shopify_auth_params && shopify_auth_params.with_indifferent_access
         shop = if shopify_auth_params && shopify_auth_params['shop']
           "https://#{shopify_auth_params['shop']}"
         else
