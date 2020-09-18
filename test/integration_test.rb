@@ -181,7 +181,7 @@ class IntegrationTest < Minitest::Test
   end
 
   def test_unnecessary_read_scopes_are_removed
-    build_app scope: 'read_content,read_products,write_products',
+    build_app scope: 'read_content,read_products,write_products,unauthenticated_read_checkouts,unauthenticated_write_checkouts',
               callback_path: '/admin/auth/legacy/callback',
               myshopify_domain: 'myshopify.dev:3000',
               setup: lambda { |env|
@@ -192,7 +192,7 @@ class IntegrationTest < Minitest::Test
     response = request.get("https://app.example.com/auth/shopify?shop=snowdevil.myshopify.dev:3000")
     assert_equal 302, response.status
     redirect_params = Rack::Utils.parse_query(URI(response.location).query)
-    assert_equal 'read_content,write_products', redirect_params['scope']
+    assert_equal 'read_content,write_products,unauthenticated_write_checkouts', redirect_params['scope']
   end
 
   def test_callback_with_invalid_state_fails
@@ -260,6 +260,18 @@ class IntegrationTest < Minitest::Test
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'second_scope,first_scope')
+
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_callback_success(response, access_token, code)
+  end
+
+  def test_callback_with_duplicate_read_scopes_works
+    build_app scope: 'read_products,write_products,unauthenticated_read_products,unauthenticated_write_products'
+
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, 'write_products,unauthenticated_write_products')
 
     response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
