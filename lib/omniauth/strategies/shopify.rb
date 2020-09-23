@@ -6,7 +6,6 @@ module OmniAuth
       # Available scopes: content themes products customers orders script_tags shipping
       # read_*  or write_*
       DEFAULT_SCOPE = 'read_products'
-      SCOPE_DELIMITER = ','
       MINUTE = 60
       CODE_EXPIRES_AFTER = 10 * MINUTE
 
@@ -77,15 +76,9 @@ module OmniAuth
         config = options.authorize_params.merge(options_for("authorize"))
         return false unless token && config[:scope] && token['scope']
         scope = config[:scope]
-        expected_scope = normalized_scopes(scope)
-        actual_scope = scopes_deserialize(token['scope'])
-        (expected_scope.sort == actual_scope.sort)
-      end
-
-      def normalized_scopes(scopes)
-        scope_list = scopes_deserialize(scopes).map(&:strip).reject(&:empty?).uniq
-        ignore_scopes = scope_list.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
-        scope_list - ignore_scopes
+        expected_scope = OmniAuth::Shopify::Scopes.deserialize(scope).normalize
+        actual_scope = OmniAuth::Shopify::Scopes.deserialize(token['scope'])
+        (expected_scope == actual_scope)
       end
 
       def self.encoded_params_for_signature(params)
@@ -149,7 +142,7 @@ module OmniAuth
       def authorize_params
         super.tap do |params|
           scopes = params[:scope] || DEFAULT_SCOPE
-          params[:scope] = scopes_serialize(normalized_scopes(scopes))
+          params[:scope] = OmniAuth::Shopify::Scopes.deserialize(scopes).normalize.serialize
           params[:grant_options] = ['per-user'] if options[:per_user_permissions]
         end
       end
@@ -164,14 +157,6 @@ module OmniAuth
         params = request.GET
         calculated_signature = self.class.hmac_sign(self.class.encoded_params_for_signature(params), secret)
         Rack::Utils.secure_compare(calculated_signature, params['hmac'])
-      end
-
-      def scopes_serialize(scopes)
-        scopes.join(SCOPE_DELIMITER)
-      end
-
-      def scopes_deserialize(scopes)
-        scopes.to_s.split(SCOPE_DELIMITER)
       end
     end
   end
