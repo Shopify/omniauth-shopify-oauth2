@@ -76,12 +76,14 @@ module OmniAuth
       def valid_scope?(token)
         params = options.authorize_params.merge(options_for("authorize"))
         return false unless token && params[:scope] && token['scope']
-        expected_scope = normalized_scopes(params[:scope]).sort
-        (expected_scope == token['scope'].split(SCOPE_DELIMITER).sort)
+        scope = params[:scope]
+        expected_scope = normalized_scopes(scope)
+        actual_scope = scopes_deserialize(token['scope'])
+        (expected_scope.sort == actual_scope.sort)
       end
 
       def normalized_scopes(scopes)
-        scope_list = scopes.to_s.split(SCOPE_DELIMITER).map(&:strip).reject(&:empty?).uniq
+        scope_list = scopes_deserialize(scopes).map(&:strip).reject(&:empty?).uniq
         ignore_scopes = scope_list.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
         scope_list - ignore_scopes
       end
@@ -146,7 +148,8 @@ module OmniAuth
 
       def authorize_params
         super.tap do |params|
-          params[:scope] = normalized_scopes(params[:scope] || DEFAULT_SCOPE).join(SCOPE_DELIMITER)
+          scopes = params[:scope] || DEFAULT_SCOPE
+          params[:scope] = scopes_serialize(normalized_scopes(scopes))
           params[:grant_options] = ['per-user'] if options[:per_user_permissions]
         end
       end
@@ -161,6 +164,14 @@ module OmniAuth
         params = request.GET
         calculated_signature = self.class.hmac_sign(self.class.encoded_params_for_signature(params), secret)
         Rack::Utils.secure_compare(calculated_signature, params['hmac'])
+      end
+
+      def scopes_serialize(scopes)
+        scopes.join(SCOPE_DELIMITER)
+      end
+
+      def scopes_deserialize(scopes)
+        scopes.to_s.split(SCOPE_DELIMITER)
       end
     end
   end
