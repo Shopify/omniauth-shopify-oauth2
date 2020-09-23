@@ -6,7 +6,6 @@ module OmniAuth
       # Available scopes: content themes products customers orders script_tags shipping
       # read_*  or write_*
       DEFAULT_SCOPE = 'read_products'
-      SCOPE_DELIMITER = ','
       MINUTE = 60
       CODE_EXPIRES_AFTER = 10 * MINUTE
 
@@ -74,16 +73,11 @@ module OmniAuth
       end
 
       def valid_scope?(token)
-        params = options.authorize_params.merge(options_for("authorize"))
-        return false unless token && params[:scope] && token['scope']
-        expected_scope = normalized_scopes(params[:scope]).sort
-        (expected_scope == token['scope'].split(SCOPE_DELIMITER).sort)
-      end
-
-      def normalized_scopes(scopes)
-        scope_list = scopes.to_s.split(SCOPE_DELIMITER).map(&:strip).reject(&:empty?).uniq
-        ignore_scopes = scope_list.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
-        scope_list - ignore_scopes
+        config = options.authorize_params.merge(options_for("authorize"))
+        return false unless token && config[:scope] && token['scope']
+        expected_api_access = ::ShopifyAPI::ApiAccess.new(config[:scope])
+        actual_api_access = ::ShopifyAPI::ApiAccess.new(token['scope'])
+        actual_api_access == expected_api_access
       end
 
       def self.encoded_params_for_signature(params)
@@ -146,7 +140,8 @@ module OmniAuth
 
       def authorize_params
         super.tap do |params|
-          params[:scope] = normalized_scopes(params[:scope] || DEFAULT_SCOPE).join(SCOPE_DELIMITER)
+          scopes = params[:scope] || DEFAULT_SCOPE
+          params[:scope] = ::ShopifyAPI::ApiAccess.new(scopes).to_s
           params[:grant_options] = ['per-user'] if options[:per_user_permissions]
         end
       end

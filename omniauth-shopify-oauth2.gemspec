@@ -21,6 +21,7 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'omniauth-oauth2', ['~> 1.5', '< 1.7.1']
   s.add_runtime_dependency 'activesupport'
+  s.add_runtime_dependency('shopify_api', '~> 9.3')
 
   s.add_development_dependency 'minitest', '~> 5.6'
   s.add_development_dependency 'rspec', '~> 3.9.0'
