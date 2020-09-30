@@ -19,13 +19,14 @@ module OmniAuth
       end
 
       def serialize
-        scopes.join(SCOPE_DELIMITER)
+        to_a.join(SCOPE_DELIMITER)
       end
 
       def ==(other)
         other.class == self.class &&
           scopes == other.scopes
       end
+
       alias :eql? :==
 
       def hash
