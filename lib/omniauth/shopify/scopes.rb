@@ -8,14 +8,13 @@ module OmniAuth
       end
 
       def initialize(scope_names)
-        @scopes = scope_names.to_set
+        @scopes = scope_names.map(&:strip).reject(&:empty?).to_set
       end
 
       def normalize
-        scope_list = scopes.map(&:strip).reject(&:empty?)
-        ignore_scopes = scope_list.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
+        ignore_scopes = scopes.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
 
-        Scopes.new(scope_list - ignore_scopes)
+        Scopes.new(scopes - ignore_scopes)
       end
 
       def serialize
