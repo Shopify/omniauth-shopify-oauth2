@@ -76,9 +76,9 @@ module OmniAuth
         config = options.authorize_params.merge(options_for("authorize"))
         return false unless token && config[:scope] && token['scope']
         scope = config[:scope]
-        expected_scope = OmniAuth::Shopify::Scopes.deserialize(scope).normalize
+        expected_scope = OmniAuth::Shopify::Scopes.deserialize(scope)
         actual_scope = OmniAuth::Shopify::Scopes.deserialize(token['scope'])
-        (expected_scope == actual_scope)
+        actual_scope.equivalent_access?(expected_scope)
       end
 
       def self.encoded_params_for_signature(params)

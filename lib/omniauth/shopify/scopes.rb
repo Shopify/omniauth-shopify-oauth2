@@ -21,6 +21,10 @@ module OmniAuth
         to_a.join(SCOPE_DELIMITER)
       end
 
+      def equivalent_access?(other)
+        return self.normalize == other.normalize
+      end
+
       def ==(other)
         other.class == self.class &&
           scopes == other.scopes

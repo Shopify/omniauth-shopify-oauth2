@@ -13,6 +13,18 @@ class ScopesTest < Minitest::Test
     assert_equal expected_normalized_scopes, full_scopes.normalize
   end
 
+  def test_scopes_have_equivalent_access
+    full_scopes = OmniAuth::Shopify::Scopes.new(['read_orders', 'read_products ', 'write_orders'])
+    equivalent_scopes = OmniAuth::Shopify::Scopes.new(%w(write_orders read_products))
+    assert full_scopes.equivalent_access?(equivalent_scopes)
+  end
+
+  def test_scopes_do_not_have_equivalent_access
+    full_scopes = OmniAuth::Shopify::Scopes.new(['read_orders', 'read_products ', 'write_orders'])
+    non_equivalent_scopes = OmniAuth::Shopify::Scopes.new(%w(read_orders read_products))
+    refute full_scopes.equivalent_access?(non_equivalent_scopes)
+  end
+
   def test_scopes_deserialize
     serialized_scopes = "read_products, write_orders"
     expected_scopes = OmniAuth::Shopify::Scopes.new(%w(write_orders read_products))
