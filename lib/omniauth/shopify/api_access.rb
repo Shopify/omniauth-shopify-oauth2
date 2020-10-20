@@ -1,6 +1,6 @@
 module OmniAuth
   module Shopify
-    class Scopes
+    class ApiAccess
       SCOPE_DELIMITER = ','
 
       def initialize(scope_names)
@@ -11,7 +11,7 @@ module OmniAuth
         store_scopes(scope_names)
       end
 
-      def include?(scopes)
+      def covers?(scopes)
         scopes.compressed_scopes <= expanded_scopes
       end
 
