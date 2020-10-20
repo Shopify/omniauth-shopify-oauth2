@@ -11,36 +11,41 @@ module OmniAuth
         store_scopes(scope_names)
       end
 
+      def include?(scopes)
+        scopes.compressed_scopes <= expanded_scopes
+      end
+
       def to_s
         to_a.join(SCOPE_DELIMITER)
       end
 
       def to_a
-        scopes.to_a
+        compressed_scopes.to_a
       end
 
       def ==(other)
         other.class == self.class &&
-          scopes == other.scopes
+          compressed_scopes == other.compressed_scopes
       end
 
       alias :eql? :==
 
       def hash
-        scopes.hash
+        compressed_scopes.hash
       end
 
       protected
 
-      attr_reader :scopes
+      attr_reader :compressed_scopes, :expanded_scopes
 
       private
 
       def store_scopes(scope_names)
         scopes = scope_names.map(&:strip).reject(&:empty?).to_set
-        ignore_scopes = scopes.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
+        implied_scopes = scopes.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
 
-        @scopes = scopes - ignore_scopes
+        @compressed_scopes = scopes - implied_scopes
+        @expanded_scopes = scopes + implied_scopes
       end
     end
   end

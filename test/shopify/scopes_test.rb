@@ -39,6 +39,54 @@ class ScopesTest < Minitest::Test
     refute_equal unauthenticated_scopes, authenticated_write_scopes
   end
 
+  def test_scopes_includes_is_truthy_for_same_scopes
+    scopes = OmniAuth::Shopify::Scopes.new(%w(read_orders))
+    other_scopes = OmniAuth::Shopify::Scopes.new(%w(read_orders))
+    assert scopes.include?(other_scopes)
+  end
+
+  def test_scopes_includes_is_falsy_for_different_scopes
+    scopes = OmniAuth::Shopify::Scopes.new(%w(read_orders))
+    other_scopes = OmniAuth::Shopify::Scopes.new(%w(read_products))
+    refute scopes.include?(other_scopes)
+  end
+
+  def test_scopes_includes_is_truthy_for_read_when_the_set_has_read_write
+    scopes = OmniAuth::Shopify::Scopes.new(%w(write_products))
+    other_scopes = OmniAuth::Shopify::Scopes.new(%w(read_products))
+    assert scopes.include?(other_scopes)
+  end
+
+  def test_scopes_includes_is_truthy_for_read_when_the_set_has_read_write_for_that_resource_and_others
+    scopes = OmniAuth::Shopify::Scopes.new(%w(write_products, write_orders))
+    other_scopes = OmniAuth::Shopify::Scopes.new(%w(read_orders))
+    assert scopes.include?(other_scopes)
+  end
+
+  def test_scopes_includes_is_truthy_for_write_when_the_set_has_read_write_for_that_resource_and_others
+    scopes = OmniAuth::Shopify::Scopes.new(%w(write_products, write_orders))
+    other_scopes = OmniAuth::Shopify::Scopes.new(%w(write_orders))
+    assert scopes.include?(other_scopes)
+  end
+
+  def test_scopes_includes_is_truthy_for_subset_of_scopes
+    scopes = OmniAuth::Shopify::Scopes.new(%w(write_products write_orders write_customers))
+    other_scopes = OmniAuth::Shopify::Scopes.new(%w(write_orders read_products))
+    assert scopes.include?(other_scopes)
+  end
+
+  def test_includes_is_falsy_for_sets_of_scopes_that_have_no_common_elements
+    scopes = OmniAuth::Shopify::Scopes.new(%w(write_products write_orders write_customers))
+    other_scopes = OmniAuth::Shopify::Scopes.new(%w(write_images read_content))
+    refute scopes.include?(other_scopes)
+  end
+
+  def test_includes_is_falsy_for_sets_of_scopes_that_have_only_some_common_access
+    scopes = OmniAuth::Shopify::Scopes.new(%w(write_products write_orders write_customers))
+    other_scopes = OmniAuth::Shopify::Scopes.new(%w(write_products read_content))
+    refute scopes.include?(other_scopes)
+  end
+
   def test_duplicate_scopes_resolve_to_one_scope
     scopes = OmniAuth::Shopify::Scopes.new(%w(read_orders read_orders read_orders read_orders))
     equivalent_scopes = OmniAuth::Shopify::Scopes.new(%w(read_orders))
