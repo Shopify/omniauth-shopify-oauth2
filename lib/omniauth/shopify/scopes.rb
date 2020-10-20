@@ -3,26 +3,20 @@ module OmniAuth
     class Scopes
       SCOPE_DELIMITER = ','
 
-      def self.deserialize(scopes)
-        new(scopes.to_s.split(SCOPE_DELIMITER))
-      end
-
       def initialize(scope_names)
-        @scopes = scope_names.map(&:strip).reject(&:empty?).to_set
+        if scope_names.is_a?(String)
+          scope_names = scope_names.to_s.split(SCOPE_DELIMITER)
+        end
+
+        store_scopes(scope_names)
       end
 
-      def normalize
-        ignore_scopes = scopes.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
-
-        Scopes.new(scopes - ignore_scopes)
-      end
-
-      def serialize
+      def to_s
         to_a.join(SCOPE_DELIMITER)
       end
 
-      def equivalent_access?(other)
-        return self.normalize == other.normalize
+      def to_a
+        scopes.to_a
       end
 
       def ==(other)
@@ -36,13 +30,18 @@ module OmniAuth
         scopes.hash
       end
 
-      def to_a
-        scopes.to_a
-      end
-
       protected
 
       attr_reader :scopes
+
+      private
+
+      def store_scopes(scope_names)
+        scopes = scope_names.map(&:strip).reject(&:empty?).to_set
+        ignore_scopes = scopes.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
+
+        @scopes = scopes - ignore_scopes
+      end
     end
   end
 end
