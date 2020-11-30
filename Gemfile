@@ -7,5 +7,5 @@ if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.2")
 end
 
 group :development, :test do
-  gem 'fakeweb', git: 'https://github.com/chrisk/fakeweb.git'
+  gem 'fakeweb', git: 'https://github.com/chrisk/fakeweb.git' # https://github.com/chrisk/fakeweb/issues/62
 end
