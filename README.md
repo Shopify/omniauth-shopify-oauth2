@@ -1,4 +1,4 @@
-[![Build Status](https://api.travis-ci.org/Shopify/omniauth-shopify-oauth2.png?branch=master)](http://travis-ci.org/Shopify/omniauth-shopify-oauth2)
+[![Build Status](https://github.com/Shopify/omniauth-shopify-oauth2/workflows/CI/badge.svg?branch=master)](https://github.com/Shopify/omniauth-shopify-oauth2/actions)
 
 # OmniAuth Shopify
 

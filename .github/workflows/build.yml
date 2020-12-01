@@ -1,0 +1,25 @@
+name: CI
+
+on: 
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Ruby ${{ matrix.version }}
+    strategy:
+      matrix:
+        version: [2.5.0, 2.7.1]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Ruby ${{ matrix.version }}
+        uses: ruby/setup-ruby@v1
+        with: 
+          ruby-version: ${{ matrix.version }}
+          bundler-cache: true
+      - name: Install dependencies
+        run: bundle
+      - name: Run Tests
+        run: bundle exec rake
+          
