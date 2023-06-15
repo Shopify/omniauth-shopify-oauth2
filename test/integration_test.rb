@@ -206,29 +206,27 @@ class IntegrationTest < Minitest::Test
     assert_equal '/auth/failure?message=csrf_detected&strategy=shopify', response.location
   end
 
-  def test_callback_with_mismatching_scope_fails
+  def test_callback_with_mismatching_scope_succeeds
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'some_invalid_scope', nil)
 
     response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
-    assert_equal 302, response.status
-    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+    assert_callback_success(response, access_token, code)
   end
 
-  def test_callback_with_no_scope_fails
+  def test_callback_with_no_scope_succeeds
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, nil)
 
     response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
-    assert_equal 302, response.status
-    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+    assert_callback_success(response, access_token, code)
   end
 
-  def test_callback_with_missing_access_scope_fails
+  def test_callback_with_missing_access_scope_succeeds
     build_app scope: 'first_scope,second_scope'
 
     access_token = SecureRandom.hex(16)
@@ -237,11 +235,10 @@ class IntegrationTest < Minitest::Test
 
     response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
-    assert_equal 302, response.status
-    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+    assert_callback_success(response, access_token, code)
   end
 
-  def test_callback_with_extra_access_scope_fails
+  def test_callback_with_extra_access_scope_succeeds
     build_app scope: 'first_scope,second_scope'
 
     access_token = SecureRandom.hex(16)
@@ -250,8 +247,7 @@ class IntegrationTest < Minitest::Test
 
     response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
-    assert_equal 302, response.status
-    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+    assert_callback_success(response, access_token, code)
   end
 
   def test_callback_with_scopes_out_of_order_works

@@ -73,13 +73,6 @@ module OmniAuth
         validate_signature(new_secret) || (old_secret && validate_signature(old_secret))
       end
 
-      def valid_scope?(token)
-        params = options.authorize_params.merge(options_for("authorize"))
-        return false unless token && params[:scope] && token['scope']
-        expected_scope = normalized_scopes(params[:scope]).sort
-        (expected_scope == token['scope'].split(SCOPE_DELIMITER).sort)
-      end
-
       def normalized_scopes(scopes)
         scope_list = scopes.to_s.split(SCOPE_DELIMITER).map(&:strip).reject(&:empty?).uniq
         ignore_scopes = scope_list.map { |scope| scope =~ /\A(unauthenticated_)?write_(.*)\z/ && "#{$1}read_#{$2}" }.compact
@@ -128,9 +121,6 @@ module OmniAuth
         return fail!(:invalid_signature, CallbackError.new(:invalid_signature, "Signature does not match, it may have been tampered with.")) unless valid_signature?
 
         token = build_access_token
-        unless valid_scope?(token)
-          return fail!(:invalid_scope, CallbackError.new(:invalid_scope, "Scope does not match, it may have been tampered with."))
-        end
         unless valid_permissions?(token)
           return fail!(:invalid_permissions, CallbackError.new(:invalid_permissions, "Requested API access mode does not match."))
         end
