@@ -206,29 +206,27 @@ class IntegrationTest < Minitest::Test
     assert_equal '/auth/failure?message=csrf_detected&strategy=shopify', response.location
   end
 
-  def test_callback_with_mismatching_scope_fails
+  def test_callback_with_mismatching_scope_succeeds
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, 'some_invalid_scope', nil)
 
     response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
-    assert_equal 302, response.status
-    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+    assert_callback_success(response, access_token, code)
   end
 
-  def test_callback_with_no_scope_fails
+  def test_callback_with_no_scope_succeeds
     access_token = SecureRandom.hex(16)
     code = SecureRandom.hex(16)
     expect_access_token_request(access_token, nil)
 
     response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
-    assert_equal 302, response.status
-    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+    assert_callback_success(response, access_token, code)
   end
 
-  def test_callback_with_missing_access_scope_fails
+  def test_callback_with_missing_access_scope_succeeds
     build_app scope: 'first_scope,second_scope'
 
     access_token = SecureRandom.hex(16)
@@ -237,11 +235,10 @@ class IntegrationTest < Minitest::Test
 
     response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
-    assert_equal 302, response.status
-    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+    assert_callback_success(response, access_token, code)
   end
 
-  def test_callback_with_extra_access_scope_fails
+  def test_callback_with_extra_access_scope_succeeds
     build_app scope: 'first_scope,second_scope'
 
     access_token = SecureRandom.hex(16)
@@ -250,8 +247,7 @@ class IntegrationTest < Minitest::Test
 
     response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
 
-    assert_equal 302, response.status
-    assert_equal '/auth/failure?message=invalid_scope&strategy=shopify', response.location
+    assert_callback_success(response, access_token, code)
   end
 
   def test_callback_with_scopes_out_of_order_works
@@ -375,7 +371,7 @@ class IntegrationTest < Minitest::Test
 
     FakeWeb.register_uri(
       :post,
-      "https://snowdevil.myshopify.com/admin/oauth/access_token",
+      %r{snowdevil.myshopify.com/admin/oauth/access_token},
       status: [ "401", "Invalid token" ],
       body: "Token is invalid or has already been requested"
     )
@@ -415,7 +411,7 @@ class IntegrationTest < Minitest::Test
   end
 
   def expect_access_token_request(access_token, scope, associated_user=nil, session=nil)
-    FakeWeb.register_uri(:post, "https://snowdevil.myshopify.com/admin/oauth/access_token",
+    FakeWeb.register_uri(:post, %r{snowdevil.myshopify.com/admin/oauth/access_token},
                          body: JSON.dump(
                            access_token: access_token,
                            scope: scope,
@@ -426,10 +422,11 @@ class IntegrationTest < Minitest::Test
   end
 
   def assert_callback_success(response, access_token, code)
+    credentials = ::Base64.decode64(FakeWeb.last_request['authorization'].split(" ", 2)[1] || "")
+    assert_equal "123:#{@secret}", credentials
+
     token_request_params = Rack::Utils.parse_query(FakeWeb.last_request.body)
-    assert_equal token_request_params['client_id'], '123'
-    assert_equal token_request_params['client_secret'], @secret
-    assert_equal token_request_params['code'], code
+    assert_equal code, token_request_params['code']
 
     assert_equal 'snowdevil.myshopify.com', @omniauth_result.uid
     assert_equal access_token, @omniauth_result.credentials.token
