@@ -375,7 +375,7 @@ class IntegrationTest < Minitest::Test
 
     FakeWeb.register_uri(
       :post,
-      "https://snowdevil.myshopify.com/admin/oauth/access_token",
+      %r{snowdevil.myshopify.com/admin/oauth/access_token},
       status: [ "401", "Invalid token" ],
       body: "Token is invalid or has already been requested"
     )
@@ -415,7 +415,7 @@ class IntegrationTest < Minitest::Test
   end
 
   def expect_access_token_request(access_token, scope, associated_user=nil, session=nil)
-    FakeWeb.register_uri(:post, "https://snowdevil.myshopify.com/admin/oauth/access_token",
+    FakeWeb.register_uri(:post, %r{snowdevil.myshopify.com/admin/oauth/access_token},
                          body: JSON.dump(
                            access_token: access_token,
                            scope: scope,
@@ -426,10 +426,11 @@ class IntegrationTest < Minitest::Test
   end
 
   def assert_callback_success(response, access_token, code)
+    credentials = ::Base64.decode64(FakeWeb.last_request['authorization'].split(" ", 2)[1] || "")
+    assert_equal "123:#{@secret}", credentials
+
     token_request_params = Rack::Utils.parse_query(FakeWeb.last_request.body)
-    assert_equal token_request_params['client_id'], '123'
-    assert_equal token_request_params['client_secret'], @secret
-    assert_equal token_request_params['code'], code
+    assert_equal code, token_request_params['code']
 
     assert_equal 'snowdevil.myshopify.com', @omniauth_result.uid
     assert_equal access_token, @omniauth_result.credentials.token
