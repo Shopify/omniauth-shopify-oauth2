@@ -6,6 +6,7 @@ require 'minitest/autorun'
 require 'rack/session'
 require 'fakeweb'
 require 'json'
+require 'active_support'
 require 'active_support/core_ext/hash'
 
 OmniAuth.config.logger = Logger.new(nil)
