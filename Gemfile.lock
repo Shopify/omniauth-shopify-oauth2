@@ -57,10 +57,11 @@ GEM
     omniauth-oauth2 (1.8.0)
       oauth2 (>= 1.4, < 3)
       omniauth (~> 2.0)
-    rack (3.0.14)
+    rack (3.1.14)
     rack-protection (3.0.6)
       rack
-    rack-session (2.0.0)
+    rack-session (2.1.1)
+      base64 (>= 0.1.0)
       rack (>= 3.0.0)
     rake (13.2.0)
     rspec (3.9.0)
