@@ -155,6 +155,14 @@ module OmniAuth
         options[:callback_url] || full_host + script_name + callback_path
       end
 
+      def credentials
+        hash = super
+        if (expires_in = access_token['refresh_token_expires_in'])
+          hash['refresh_token_expires_at'] = Time.now.to_i + expires_in.to_i
+        end
+        hash
+      end
+
       private
 
       def validate_signature(secret)

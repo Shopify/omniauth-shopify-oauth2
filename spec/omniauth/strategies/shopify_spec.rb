@@ -97,6 +97,7 @@ describe OmniAuth::Strategies::Shopify do
       @access_token.stub(:expires?)
       @access_token.stub(:expires_at)
       @access_token.stub(:refresh_token)
+      @access_token.stub(:[]) { nil }
       subject.stub(:access_token) { @access_token }
     end
 
@@ -115,6 +116,18 @@ describe OmniAuth::Strategies::Shopify do
 
       @access_token.stub(:expires?) { false }
       subject.credentials['expires'].should eq(false)
+    end
+
+    it 'sets refresh_token_expires_at when refresh_token_expires_in is present' do
+      now = Time.now.to_i
+      @access_token.stub(:[]).with('refresh_token_expires_in') { 86400 }
+      result = subject.credentials
+      result['refresh_token_expires_at'].should be_within(2).of(now + 86400)
+    end
+
+    it 'does not set refresh_token_expires_at when refresh_token_expires_in is absent' do
+      @access_token.stub(:[]).with('refresh_token_expires_in') { nil }
+      subject.credentials.should_not have_key('refresh_token_expires_at')
     end
 
   end
