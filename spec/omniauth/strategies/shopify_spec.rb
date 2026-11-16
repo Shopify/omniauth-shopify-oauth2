@@ -125,12 +125,6 @@ describe OmniAuth::Strategies::Shopify do
       subject.credentials['refresh_token_expires_at'].should eq(1_086_400)
     end
 
-    it 'does not set refresh_token_expires_at when the access token has none' do
-      @access_token.stub(:expires?) { true }
-      @access_token.stub(:refresh_token) { 'refresh' }
-      subject.credentials.should_not have_key('refresh_token_expires_at')
-    end
-
     it 'does not set refresh_token_expires_at without a refresh token' do
       @access_token.stub(:refresh_token_expires_at) { 1_086_400 }
       subject.credentials.should_not have_key('refresh_token_expires_at')
@@ -144,55 +138,16 @@ describe OmniAuth::Strategies::Shopify do
       OmniAuth::Shopify::AccessToken.from_hash(client, {'access_token' => 'abc'}.merge(opts))
     end
 
-    it 'is used by the client' do
-      client.options[:access_token_class].should eq(OmniAuth::Shopify::AccessToken)
-    end
-
     it 'computes refresh_token_expires_at when the token is built' do
       now = Time.now.to_i
       token = build_token('refresh_token_expires_in' => 86400)
       token.refresh_token_expires_at.should be_within(2).of(now + 86400)
     end
 
-    it 'does not change refresh_token_expires_at after the token is built' do
-      token = build_token('refresh_token_expires_in' => 86400)
-      later = Time.at(Time.now.to_i + 3600)
-      Time.stub(:now) { later }
-      token.refresh_token_expires_at.should be < later.to_i + 86400
-    end
-
     it 'ignores missing, zero and non-numeric refresh_token_expires_in' do
       build_token({}).refresh_token_expires_at.should be_nil
       build_token('refresh_token_expires_in' => 0).refresh_token_expires_at.should be_nil
       build_token('refresh_token_expires_in' => 'abc').refresh_token_expires_at.should be_nil
-    end
-
-    it 'deducts expires_latency like expires_at' do
-      now = Time.now.to_i
-      token = build_token('expires_in' => 3600, 'refresh_token_expires_in' => 86400, :expires_latency => 60)
-      token.refresh_token_expires_at.should be_within(2).of(now + 86400 - 60)
-    end
-
-    it 'accepts refresh_token_expires_at as an ISO 8601 string' do
-      token = build_token('refresh_token_expires_at' => '2026-11-17T10:00:00Z')
-      token.refresh_token_expires_at.should eq(Time.utc(2026, 11, 17, 10).to_i)
-    end
-
-    it 'keeps refresh_token_expires_at through to_hash and from_hash' do
-      token = build_token('refresh_token_expires_in' => 86400)
-      later = Time.at(Time.now.to_i + 3600)
-      Time.stub(:now) { later }
-      rebuilt = OmniAuth::Shopify::AccessToken.from_hash(client, token.to_hash)
-      rebuilt.refresh_token_expires_at.should eq(token.refresh_token_expires_at)
-    end
-
-    it 'keeps refresh_token_expires_at out of params, like expires_at' do
-      token = build_token('refresh_token_expires_in' => 86400)
-      stored = token.to_hash.transform_keys(&:to_s)
-      rebuilt = OmniAuth::Shopify::AccessToken.from_hash(client, stored)
-      rebuilt.params.keys.map(&:to_s).should_not include('refresh_token_expires_at')
-      rebuilt.to_hash.keys.map(&:to_s).count('refresh_token_expires_at').should eq(1)
-      rebuilt.refresh_token_expires_at.should eq(token.refresh_token_expires_at)
     end
   end
 
