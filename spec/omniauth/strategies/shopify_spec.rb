@@ -185,6 +185,15 @@ describe OmniAuth::Strategies::Shopify do
       rebuilt = OmniAuth::Shopify::AccessToken.from_hash(client, token.to_hash)
       rebuilt.refresh_token_expires_at.should eq(token.refresh_token_expires_at)
     end
+
+    it 'keeps refresh_token_expires_at out of params, like expires_at' do
+      token = build_token('refresh_token_expires_in' => 86400)
+      stored = token.to_hash.transform_keys(&:to_s)
+      rebuilt = OmniAuth::Shopify::AccessToken.from_hash(client, stored)
+      rebuilt.params.keys.map(&:to_s).should_not include('refresh_token_expires_at')
+      rebuilt.to_hash.keys.map(&:to_s).count('refresh_token_expires_at').should eq(1)
+      rebuilt.refresh_token_expires_at.should eq(token.refresh_token_expires_at)
+    end
   end
 
   describe '#valid_site?' do

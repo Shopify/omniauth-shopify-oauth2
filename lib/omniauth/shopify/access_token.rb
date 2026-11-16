@@ -8,9 +8,10 @@ module OmniAuth
       attr_reader :refresh_token_expires_at
 
       def initialize(client, token, opts = {})
-        super
-        @refresh_token_expires_at = self[:refresh_token_expires_at] || self['refresh_token_expires_at']
-        @refresh_token_expires_at &&= convert_expires_at(@refresh_token_expires_at)
+        opts = opts.dup
+        @refresh_token_expires_at = opts.delete(:refresh_token_expires_at) || opts.delete('refresh_token_expires_at')
+        super(client, token, opts)
+        @refresh_token_expires_at &&=convert_expires_at(@refresh_token_expires_at)
         expires_in = (self[:refresh_token_expires_in] || self['refresh_token_expires_in']).to_i
         @refresh_token_expires_at ||= Time.now.to_i + expires_in if expires_in > 0
         @refresh_token_expires_at -= @expires_latency if @refresh_token_expires_at && @expires_latency
