@@ -1,4 +1,5 @@
 require 'omniauth/strategies/oauth2'
+require 'omniauth/shopify/access_token'
 
 module OmniAuth
   module Strategies
@@ -12,7 +13,8 @@ module OmniAuth
 
       option :client_options, {
         :authorize_url => '/admin/oauth/authorize',
-        :token_url => '/admin/oauth/access_token'
+        :token_url => '/admin/oauth/access_token',
+        :access_token_class => OmniAuth::Shopify::AccessToken
       }
 
       option :callback_url
@@ -143,6 +145,14 @@ module OmniAuth
 
       def callback_url
         options[:callback_url] || full_host + script_name + callback_path
+      end
+
+      def credentials
+        hash = super
+        if hash['refresh_token'] && access_token.refresh_token_expires_at
+          hash['refresh_token_expires_at'] = access_token.refresh_token_expires_at
+        end
+        hash
       end
 
       private
