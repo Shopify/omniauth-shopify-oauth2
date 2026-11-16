@@ -173,6 +173,11 @@ describe OmniAuth::Strategies::Shopify do
       token.refresh_token_expires_at.should be_within(2).of(now + 86400 - 60)
     end
 
+    it 'accepts refresh_token_expires_at as an ISO 8601 string' do
+      token = build_token('refresh_token_expires_at' => '2026-11-17T10:00:00Z')
+      token.refresh_token_expires_at.should eq(Time.utc(2026, 11, 17, 10).to_i)
+    end
+
     it 'keeps refresh_token_expires_at through to_hash and from_hash' do
       token = build_token('refresh_token_expires_in' => 86400)
       later = Time.at(Time.now.to_i + 3600)
