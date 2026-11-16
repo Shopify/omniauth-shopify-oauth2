@@ -67,6 +67,23 @@ class IntegrationTest < Minitest::Test
     assert_callback_success(response, access_token, code)
   end
 
+  def test_callback_with_expiring_token
+    access_token = SecureRandom.hex(16)
+    code = SecureRandom.hex(16)
+    expect_access_token_request(access_token, OmniAuth::Strategies::Shopify::DEFAULT_SCOPE, nil, nil,
+                                { expires_in: 3600, refresh_token: 'refresh', refresh_token_expires_in: 86400 })
+
+    now = Time.now.to_i
+    response = callback(sign_with_new_secret(shop: 'snowdevil.myshopify.com', code: code, state: opts["rack.session"]["omniauth.state"]))
+
+    assert_equal 200, response.status
+    credentials = @omniauth_result.credentials
+    assert_equal true, credentials.expires
+    assert_equal 'refresh', credentials.refresh_token
+    assert_in_delta now + 3600, credentials.expires_at, 2
+    assert_in_delta now + 86400, credentials.refresh_token_expires_at, 2
+  end
+
   def test_callback_with_legacy_signature
     build_app scope: OmniAuth::Strategies::Shopify::DEFAULT_SCOPE
     access_token = SecureRandom.hex(16)
@@ -410,14 +427,14 @@ class IntegrationTest < Minitest::Test
     params
   end
 
-  def expect_access_token_request(access_token, scope, associated_user=nil, session=nil)
+  def expect_access_token_request(access_token, scope, associated_user=nil, session=nil, token_fields={})
     FakeWeb.register_uri(:post, %r{snowdevil.myshopify.com/admin/oauth/access_token},
-                         body: JSON.dump(
+                         body: JSON.dump({
                            access_token: access_token,
                            scope: scope,
                            associated_user: associated_user,
                            session: session,
-                         ),
+                         }.merge(token_fields)),
                          content_type: 'application/json')
   end
 

@@ -20,6 +20,7 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 2.7'
 
   s.add_runtime_dependency 'omniauth-oauth2', '~> 1.5'
+  s.add_runtime_dependency 'oauth2', '>= 2.0', '< 3'
   s.add_runtime_dependency 'activesupport'
 
   s.add_development_dependency 'minitest', '~> 5.6'
