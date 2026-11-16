@@ -104,7 +104,20 @@ Here's an example *Authentication Hash* available in `request.env['omniauth.auth
   :uid => 'example.myshopify.com',
   :credentials => {
     :token => 'afasd923kjh0934kf', # OAuth 2.0 access_token, which you store and use to authenticate API requests
+    :expires => false,
   }
+}
+```
+
+When the app requests [expiring offline access tokens](https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens#offline-access-tokens), the credentials also include a refresh token and when each token expires (Unix timestamps, computed when the token is received):
+
+```ruby
+:credentials => {
+  :token => 'afasd923kjh0934kf',
+  :expires => true,
+  :expires_at => 1794845184,                  # when the access token expires
+  :refresh_token => 'shprt_5bd6c9e2d0b8f4a1',
+  :refresh_token_expires_at => 1802617584,    # when the refresh token expires
 }
 ```
 
